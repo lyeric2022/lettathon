@@ -74,7 +74,7 @@ class CatfishAgent {
           }
         ],
         tools: ['web_search', 'run_code'],
-        model: 'openai/gpt-4.1',
+        model: 'openai/gpt-4o-mini',
         embedding: 'openai/text-embedding-3-small'
       };
 

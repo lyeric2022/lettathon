@@ -1,6 +1,7 @@
 import { LettaClient } from '@letta-ai/letta-client';
 import winston from 'winston';
 import { performOCR } from './ocr';
+import { transcribeAudio, checkVoiceHealth } from './voice';
 import { validateRequestData } from '../utils/validation';
 
 const logger = winston.createLogger({
@@ -83,11 +84,21 @@ class CatfishAssistant {
         }
       }
 
-      // TODO: Add audio transcription when needed
+      // Transcribe audio if provided
       let audioTranscript = '';
       if (validatedData.audio) {
-        // For now, we'll mention that audio was provided
-        audioTranscript = '[Audio provided but not yet transcribed]';
+        try {
+          const transcriptionResult = await transcribeAudio(validatedData.audio, {
+            model: 'distil-whisper-large-v3-en', // Fastest English-only model
+            language: 'en', // English only
+            prompt: 'This is audio from a screen capture session. The user might be speaking about what they see on screen or asking for help.'
+          });
+          audioTranscript = transcriptionResult.text;
+          logger.info(`Audio transcribed: ${audioTranscript.length} characters, confidence: ${transcriptionResult.confidence}%`);
+        } catch (audioError) {
+          logger.warn('Audio transcription failed', { error: audioError });
+          audioTranscript = '[Audio provided but transcription failed]';
+        }
       }
 
       // Prepare context for Letta agent
@@ -184,12 +195,16 @@ class CatfishAssistant {
       const agents = await this.client.agents.list();
       const ourAgent = agents.find(agent => agent.id === this.agentId);
 
+      // Check voice service health
+      const voiceHealth = await checkVoiceHealth();
+
       if (!ourAgent) {
         return {
           status: 'unhealthy',
           details: {
             letta: 'connected',
             agent: 'not found',
+            voice: voiceHealth.details,
             error: `Agent ${this.agentId} not found`
           }
         };
@@ -200,6 +215,7 @@ class CatfishAssistant {
         details: {
           letta: 'connected',
           agent: 'ready',
+          voice: voiceHealth.details,
           agentName: ourAgent.name,
           agentId: this.agentId
         }
@@ -210,6 +226,7 @@ class CatfishAssistant {
         details: {
           letta: 'disconnected',
           agent: 'unknown',
+          voice: 'unknown',
           error: error instanceof Error ? error.message : 'Unknown error'
         }
       };

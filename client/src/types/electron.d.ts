@@ -21,11 +21,17 @@ export interface ElectronAPI {
   // Assistant request handling
   processAssistantRequest: (data: any) => Promise<any>;
   
+  // Audio recording
+  startRecording: () => Promise<boolean>;
+  stopRecording: () => Promise<string | null>; // Returns base64 audio data
+  isRecording: () => Promise<boolean>;
+  
   // Event listeners (optional methods)
   onProcessAssistantRequest?: (callback: (data: any) => void) => void;
   onDisplayContent?: (callback: (content: string) => void) => void;
   onShowLoading?: (callback: () => void) => void;
   onToggleOverlay?: (callback: () => void) => void;
+  onRecordingStatusChanged?: (callback: (isRecording: boolean) => void) => void;
 }
 
 declare global {

@@ -27,6 +27,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Assistant request handling
   processAssistantRequest: (data: any) => ipcRenderer.invoke('process-assistant-request', data),
   
+  // Audio recording
+  startRecording: () => ipcRenderer.invoke('start-recording'),
+  stopRecording: () => ipcRenderer.invoke('stop-recording'),
+  isRecording: () => ipcRenderer.invoke('is-recording'),
+  
   // Event listeners
   onProcessAssistantRequest: (callback: (data: any) => void) => {
     ipcRenderer.on('process-assistant-request', (event: any, data: any) => callback(data));
@@ -42,6 +47,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   onToggleOverlay: (callback: () => void) => {
     ipcRenderer.on('toggle-overlay', () => callback());
+  },
+  
+  onRecordingStatusChanged: (callback: (isRecording: boolean) => void) => {
+    ipcRenderer.on('recording-status-changed', (event: any, isRecording: boolean) => callback(isRecording));
   },
   
   // Remove listeners

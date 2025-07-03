@@ -4,6 +4,8 @@
 
 1. **Letta Cloud Account**: Sign up at [app.letta.com](https://app.letta.com)
 2. **Letta API Key**: Get your API key from [https://app.letta.com/api-keys](https://app.letta.com/api-keys)
+3. **Groq Account** (for voice transcription): Sign up at [console.groq.com](https://console.groq.com)
+4. **Groq API Key**: Get your API key from [https://console.groq.com/keys](https://console.groq.com/keys)
 
 ## Quick Setup
 
@@ -16,10 +18,11 @@ cd catfish/server
 cp env.example .env
 ```
 
-Edit the `.env` file with your Letta API key:
+Edit the `.env` file with your API keys:
 
 ```env
-LETTA_API_KEY=your_actual_api_key_here
+LETTA_API_KEY=your_actual_letta_api_key_here
+GROQ_API_KEY=your_actual_groq_api_key_here
 ```
 
 ### 2. Create Letta Agent
@@ -88,6 +91,7 @@ If the app hangs after pressing the hotkey:
 |----------|----------|-------------|
 | `LETTA_API_KEY` | Yes | Your Letta Cloud API key |
 | `LETTA_AGENT_ID` | Yes | ID of your Catfish agent |
+| `GROQ_API_KEY` | Yes | Your Groq API key for voice transcription |
 | `LETTA_PROJECT` | No | Project name (defaults to 'default') |
 | `PORT` | No | Server port (defaults to 3001) |
 | `NODE_ENV` | No | Environment (development/production) |
