@@ -19,6 +19,7 @@ import type { BrowserWindow as BrowserWindowType, IpcMainInvokeEvent, WebContent
 class CatfishApp {
   private mainWindow: BrowserWindowType | null = null;
   private overlayWindow: BrowserWindowType | null = null;
+  private overlayBounds: { x: number; y: number; width: number; height: number } | null = null;
 
   constructor() {
     this.setupApp();
@@ -139,11 +140,33 @@ class CatfishApp {
   private createOverlayWindow(): BrowserWindowType {
     const { width, height } = screen.getPrimaryDisplay().workAreaSize;
     
+    // Use saved bounds if available, otherwise use default dimensions
+    let overlayWidth: number;
+    let overlayHeight: number;
+    let overlayX: number;
+    let overlayY: number;
+    
+    if (this.overlayBounds) {
+      // Use saved position and size
+      overlayWidth = this.overlayBounds.width;
+      overlayHeight = this.overlayBounds.height;
+      overlayX = this.overlayBounds.x;
+      overlayY = this.overlayBounds.y;
+    } else {
+      // Calculate default overlay dimensions: 75% width, 1/3 height
+      overlayWidth = Math.floor(width * 0.75);
+      overlayHeight = Math.floor(height / 3);
+      
+      // Position at center top with some margin
+      overlayX = Math.floor((width - overlayWidth) / 2);
+      overlayY = 20; // 20px from top
+    }
+    
     const overlay = new BrowserWindow({
-      width: 980,
-      height: 600,
-      x: width - 1000,
-      y: 20,
+      width: overlayWidth,
+      height: overlayHeight,
+      x: overlayX,
+      y: overlayY,
       frame: false,
       alwaysOnTop: true,
       transparent: true,
@@ -165,6 +188,28 @@ class CatfishApp {
     } else {
       overlay.loadFile(join(__dirname, '../renderer/overlay.html'));
     }
+
+    // Save bounds when window is moved or resized
+    overlay.on('moved', () => {
+      const bounds = overlay.getBounds();
+      this.overlayBounds = bounds;
+      console.log('🐟 Overlay moved, saved bounds:', bounds);
+    });
+
+    overlay.on('resized', () => {
+      const bounds = overlay.getBounds();
+      this.overlayBounds = bounds;
+      console.log('🐟 Overlay resized, saved bounds:', bounds);
+    });
+
+    // Save bounds when window is closed
+    overlay.on('closed', () => {
+      if (!overlay.isDestroyed()) {
+        const bounds = overlay.getBounds();
+        this.overlayBounds = bounds;
+        console.log('🐟 Overlay closed, saved bounds:', bounds);
+      }
+    });
 
     return overlay;
   }
@@ -258,6 +303,10 @@ class CatfishApp {
     ipcMain.handle('resize-window', (_event: IpcMainInvokeEvent, width: number, height: number) => {
       if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
         this.overlayWindow.setSize(width, height);
+        // Save the new bounds
+        const bounds = this.overlayWindow.getBounds();
+        this.overlayBounds = bounds;
+        console.log('🐟 Overlay resized via IPC, saved bounds:', bounds);
       }
     });
 
@@ -341,7 +390,11 @@ class CatfishApp {
     try {
       // Show loading overlay
       console.log('🐟 Closing existing overlay if present...');
-      if (this.overlayWindow) {
+      if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
+        // Save bounds before closing
+        const bounds = this.overlayWindow.getBounds();
+        this.overlayBounds = bounds;
+        console.log('🐟 Saving overlay bounds before closing:', bounds);
         this.overlayWindow.close();
       }
       
