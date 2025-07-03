@@ -123,7 +123,7 @@ class CatfishAssistant {
       
       for (const msg of response.messages) {
         if (msg.messageType === 'assistant_message') {
-          assistantAnswer = msg.content || '';
+          assistantAnswer = (msg.content as any) || '';
         } else if (msg.messageType === 'tool_call_message') {
           toolCalls.push({
             name: msg.toolCall?.name,
