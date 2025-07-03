@@ -226,6 +226,11 @@ class CatfishApp {
       this.activateAssistant();
     });
     
+    // Microphone toggle shortcut
+    globalShortcut.register('CommandOrControl+Shift+M', () => {
+      this.toggleMicrophone();
+    });
+    
     // Toggle overlay visibility
     globalShortcut.register('CommandOrControl+Shift+O', () => {
       this.toggleOverlay();
@@ -287,6 +292,7 @@ class CatfishApp {
       if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
         console.log('🐟 Sending content to existing overlay...');
         this.overlayWindow.webContents.send('display-content', content);
+        this.overlayWindow.show();
       } else {
         console.log('🐟 Creating new overlay window...');
         this.overlayWindow = this.createOverlayWindow();
@@ -343,6 +349,12 @@ class CatfishApp {
     });
 
     ipcMain.handle('is-recording', async () => {
+      return this.isRecording;
+    });
+
+    // Toggle microphone (start/stop based on current state)
+    ipcMain.handle('toggle-microphone', async () => {
+      await this.toggleMicrophone();
       return this.isRecording;
     });
 
@@ -403,6 +415,80 @@ class CatfishApp {
     }
   }
 
+  private async toggleMicrophone(): Promise<void> {
+    console.log('🎤 Microphone toggle called...');
+    
+    // Check if audio is enabled in settings
+    const settings = store.store;
+    const audioEnabled = settings.enableAudio !== false; // Default to true if not set
+    
+    if (!audioEnabled) {
+      console.log('🎤 Audio recording is disabled in settings');
+      // Show a brief message in overlay
+      if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
+        this.overlayWindow.webContents.send('display-content', '🎤 Audio recording is disabled. Enable it in settings to use microphone features.');
+        this.overlayWindow.show();
+      } else {
+        this.overlayWindow = this.createOverlayWindow();
+        this.overlayWindow.once('ready-to-show', () => {
+          this.overlayWindow?.webContents.send('display-content', '🎤 Audio recording is disabled. Enable it in settings to use microphone features.');
+          this.overlayWindow?.show();
+        });
+      }
+      return;
+    }
+    
+    if (this.isRecording) {
+      // Stop recording
+      console.log('🎤 Stopping recording via microphone toggle...');
+      const audioData = await this.stopRecording();
+      
+      if (audioData) {
+        // Show recording stopped message
+        if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
+          this.overlayWindow.webContents.send('display-content', '🎤 Recording stopped. Press Cmd+Shift+A to process with screen capture.');
+          this.overlayWindow.show();
+        }
+      } else {
+        // Show error message
+        if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
+          this.overlayWindow.webContents.send('display-content', '🎤 Recording stopped but no audio data captured.');
+          this.overlayWindow.show();
+        }
+      }
+    } else {
+      // Start recording
+      console.log('🎤 Starting recording via microphone toggle...');
+      const recordingStarted = await this.startRecording();
+      
+      if (recordingStarted) {
+        // Show recording indicator in existing overlay or create new one
+        if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
+          this.overlayWindow.webContents.send('display-content', '🎤 Recording... Press Ctrl+Shift+M to stop or Cmd+Shift+A to process');
+          this.overlayWindow.show();
+        } else {
+          this.overlayWindow = this.createOverlayWindow();
+          this.overlayWindow.once('ready-to-show', () => {
+            this.overlayWindow?.webContents.send('display-content', '🎤 Recording... Press Ctrl+Shift+M to stop or Cmd+Shift+A to process');
+            this.overlayWindow?.show();
+          });
+        }
+      } else {
+        // Show error message
+        if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
+          this.overlayWindow.webContents.send('display-content', 'Error: Failed to start audio recording. Please check your microphone permissions.');
+          this.overlayWindow.show();
+        } else {
+          this.overlayWindow = this.createOverlayWindow();
+          this.overlayWindow.once('ready-to-show', () => {
+            this.overlayWindow?.webContents.send('display-content', 'Error: Failed to start audio recording. Please check your microphone permissions.');
+            this.overlayWindow?.show();
+          });
+        }
+      }
+    }
+  }
+
   private async activateAssistant(): Promise<void> {
     console.log('🐟 Assistant activation started...');
     
@@ -411,23 +497,20 @@ class CatfishApp {
       console.log('🐟 Recording in progress, stopping and processing...');
       
       try {
-        // Show loading overlay
-        console.log('🐟 Closing existing overlay if present...');
+        // Show loading overlay (keep existing overlay if present)
         if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
-          // Save bounds before closing
-          const bounds = this.overlayWindow.getBounds();
-          this.overlayBounds = bounds;
-          console.log('🐟 Saving overlay bounds before closing:', bounds);
-          this.overlayWindow.close();
+          console.log('🐟 Using existing overlay for loading...');
+          this.overlayWindow.webContents.send('show-loading');
+          this.overlayWindow.show();
+        } else {
+          console.log('🐟 Creating new overlay window for loading...');
+          this.overlayWindow = this.createOverlayWindow();
+          this.overlayWindow.once('ready-to-show', () => {
+            console.log('🐟 New overlay ready - sending show-loading and displaying...');
+            this.overlayWindow?.webContents.send('show-loading');
+            this.overlayWindow?.show();
+          });
         }
-        
-        console.log('🐟 Creating new overlay window...');
-        this.overlayWindow = this.createOverlayWindow();
-        this.overlayWindow.once('ready-to-show', () => {
-          console.log('🐟 Overlay ready - sending show-loading and displaying...');
-          this.overlayWindow?.webContents.send('show-loading');
-          this.overlayWindow?.show();
-        });
 
         // Stop recording and get audio data
         const audioData = await this.stopRecording();
@@ -490,28 +573,32 @@ class CatfishApp {
       const recordingStarted = await this.startRecording();
       
       if (recordingStarted) {
-        // Show recording indicator overlay
-        console.log('🐟 Closing existing overlay if present...');
+        // Show recording indicator overlay (keep existing overlay if present)
         if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
-          // Save bounds before closing
-          const bounds = this.overlayWindow.getBounds();
-          this.overlayBounds = bounds;
-          console.log('🐟 Saving overlay bounds before closing:', bounds);
-          this.overlayWindow.close();
+          console.log('🐟 Using existing overlay for recording indicator...');
+          this.overlayWindow.webContents.send('display-content', '🎤 Recording... Press Cmd+Shift+A again to stop and process');
+          this.overlayWindow.show();
+        } else {
+          console.log('🐟 Creating recording indicator overlay...');
+          this.overlayWindow = this.createOverlayWindow();
+          this.overlayWindow.once('ready-to-show', () => {
+            console.log('🐟 Recording overlay ready - showing recording indicator...');
+            this.overlayWindow?.webContents.send('display-content', '🎤 Recording... Press Cmd+Shift+A again to stop and process');
+            this.overlayWindow?.show();
+          });
         }
-        
-        console.log('🐟 Creating recording indicator overlay...');
-        this.overlayWindow = this.createOverlayWindow();
-        this.overlayWindow.once('ready-to-show', () => {
-          console.log('🐟 Recording overlay ready - showing recording indicator...');
-          this.overlayWindow?.webContents.send('display-content', '🎤 Recording... Press Cmd+Shift+A again to stop and process');
-          this.overlayWindow?.show();
-        });
       } else {
         console.error('🐟 Failed to start recording');
         // Show error overlay
         if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
           this.overlayWindow.webContents.send('display-content', 'Error: Failed to start audio recording. Please check your microphone permissions.');
+          this.overlayWindow.show();
+        } else {
+          this.overlayWindow = this.createOverlayWindow();
+          this.overlayWindow.once('ready-to-show', () => {
+            this.overlayWindow?.webContents.send('display-content', 'Error: Failed to start audio recording. Please check your microphone permissions.');
+            this.overlayWindow?.show();
+          });
         }
       }
     }

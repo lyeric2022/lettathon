@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import styled, { ThemeProvider, createGlobalStyle } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { theme } from '../theme';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const GlobalStyle = createGlobalStyle`
   * {
@@ -441,6 +443,7 @@ export const OverlayApp: React.FC = () => {
     // Listen for display content events
     if (window.electronAPI?.onDisplayContent) {
       window.electronAPI.onDisplayContent((content: string) => {
+        console.log('🐟 Overlay received display-content:', content.substring(0, 100) + '...');
         setState(prev => ({
           ...prev,
           isVisible: true,
@@ -448,12 +451,14 @@ export const OverlayApp: React.FC = () => {
           content,
           isMinimized: false
         }));
+        console.log('🐟 Overlay state updated, isVisible: true');
       });
     }
 
     // Listen for loading events
     if (window.electronAPI?.onShowLoading) {
       window.electronAPI.onShowLoading(() => {
+        console.log('🐟 Overlay received show-loading');
         setState(prev => ({
           ...prev,
           isVisible: true,
@@ -461,12 +466,14 @@ export const OverlayApp: React.FC = () => {
           content: '',
           isMinimized: false
         }));
+        console.log('🐟 Overlay state updated for loading, isVisible: true');
       });
     }
 
     // Listen for toggle overlay command
     if (window.electronAPI?.onToggleOverlay) {
       window.electronAPI.onToggleOverlay(() => {
+        console.log('🐟 Overlay received toggle-overlay');
         setState(prev => ({ ...prev, isVisible: !prev.isVisible }));
       });
     }
@@ -474,6 +481,7 @@ export const OverlayApp: React.FC = () => {
     // Listen for recording status changes
     if (window.electronAPI?.onRecordingStatusChanged) {
       window.electronAPI.onRecordingStatusChanged((isRecording: boolean) => {
+        console.log('🐟 Overlay received recording-status-changed:', isRecording);
         setState(prev => ({ ...prev, isRecording }));
       });
     }
@@ -604,6 +612,13 @@ export const OverlayApp: React.FC = () => {
                     </HeaderContent>
                     <Controls>
                       <ControlButton
+                        onClick={() => window.electronAPI?.toggleMicrophone?.()}
+                        $variant={state.isRecording ? 'primary' : undefined}
+                        title={state.isRecording ? 'Stop Recording (Ctrl+Shift+M)' : 'Start Recording (Ctrl+Shift+M)'}
+                      >
+                        {state.isRecording ? '🔴' : '🎤'}
+                      </ControlButton>
+                      <ControlButton
                         onClick={handleMinimize}
                         title="Minimize (M)"
                       >
@@ -626,7 +641,9 @@ export const OverlayApp: React.FC = () => {
                         <div className="loading-text">Processing your request...</div>
                       </LoadingSpinner>
                     ) : (
-                      <ResponseText>{state.content}</ResponseText>
+                      <ResponseText>
+                        <ReactMarkdown remarkPlugins={[remarkGfm as any]}>{state.content}</ReactMarkdown>
+                      </ResponseText>
                     )}
                   </Content>
                   
