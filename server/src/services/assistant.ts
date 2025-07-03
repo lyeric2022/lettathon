@@ -106,7 +106,7 @@ class CatfishAssistant {
       
       // Put audio transcript first (highest priority)
       if (audioTranscript) {
-        contextParts.push(`User's message to you: ${audioTranscript}`);
+        contextParts.push(`User's command: ${audioTranscript}`);
       }
       
       if (screenText) {

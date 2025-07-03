@@ -25,6 +25,7 @@ export interface ElectronAPI {
   startRecording: () => Promise<boolean>;
   stopRecording: () => Promise<string | null>; // Returns base64 audio data
   isRecording: () => Promise<boolean>;
+  toggleMicrophone: () => Promise<boolean>;
   
   // Event listeners (optional methods)
   onProcessAssistantRequest?: (callback: (data: any) => void) => void;

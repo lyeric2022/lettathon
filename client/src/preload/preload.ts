@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   startRecording: () => ipcRenderer.invoke('start-recording'),
   stopRecording: () => ipcRenderer.invoke('stop-recording'),
   isRecording: () => ipcRenderer.invoke('is-recording'),
+  toggleMicrophone: () => ipcRenderer.invoke('toggle-microphone'),
   
   // Event listeners
   onProcessAssistantRequest: (callback: (data: any) => void) => {

@@ -56,6 +56,8 @@
   "dependencies": {
     "@letta-ai/letta-client": "^0.1.148",
     "dotenv": "^17.0.1",
-    "node-record-lpcm16": "^1.0.1"
+    "node-record-lpcm16": "^1.0.1",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
   }
 }
