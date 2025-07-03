@@ -104,16 +104,17 @@ class CatfishAssistant {
       // Prepare context for Letta agent
       const contextParts = [];
       
+      // Put audio transcript first (highest priority)
+      if (audioTranscript) {
+        contextParts.push(`User's message to you: ${audioTranscript}`);
+      }
+      
       if (screenText) {
         contextParts.push(`Screen Content (OCR): "${screenText}"`);
       }
       
       if (validatedData.clipboard) {
         contextParts.push(`Clipboard Content: "${validatedData.clipboard}"`);
-      }
-      
-      if (audioTranscript) {
-        contextParts.push(`Audio: ${audioTranscript}`);
       }
 
       const userMessage = contextParts.length > 0 

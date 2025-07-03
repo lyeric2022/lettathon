@@ -51,7 +51,21 @@ class VoiceService {
       }
 
       // Create temporary file for Groq API
-      tempFilePath = join(tmpdir(), `catfish-audio-${Date.now()}.webm`);
+      // Determine file extension based on audio data format
+      let fileExtension = 'wav'; // Default to wav
+      if (audioData.startsWith('data:audio/')) {
+        const mimeType = audioData.split(';')[0].split(':')[1];
+        if (mimeType.includes('webm')) {
+          fileExtension = 'webm';
+        } else if (mimeType.includes('mp3')) {
+          fileExtension = 'mp3';
+        } else if (mimeType.includes('m4a')) {
+          fileExtension = 'm4a';
+        }
+        // Default to wav for other formats
+      }
+      
+      tempFilePath = join(tmpdir(), `catfish-audio-${Date.now()}.${fileExtension}`);
       writeFileSync(tempFilePath, audioBuffer);
 
       logger.info('Starting audio transcription with Groq', {
@@ -72,14 +86,14 @@ class VoiceService {
 
       logger.info('Audio transcription completed', {
         text: transcription.text.substring(0, 100) + '...',
-        language: transcription.language,
-        duration: transcription.duration
+        language: (transcription as any).language,
+        duration: (transcription as any).duration
       });
 
       return {
         text: transcription.text || '',
-        language: transcription.language || undefined,
-        duration: transcription.duration || undefined,
+        language: (transcription as any).language || undefined,
+        duration: (transcription as any).duration || undefined,
         confidence: this.calculateConfidence(transcription as any)
       };
 
