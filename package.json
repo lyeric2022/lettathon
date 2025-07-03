@@ -13,6 +13,8 @@
     "dev:client": "npm run dev --workspace=client",
     "dev:server": "npm run dev --workspace=server",
     "setup": "npm run setup --workspace=agent",
+    "install-system-deps": "./install-deps.sh",
+    "quick-start": "./install-deps.sh && npm install && echo '🎉 Setup complete! Configure your API keys in server/.env then run: npm run dev'",
     "build": "npm run build --workspace=server && npm run build --workspace=client",
     "build:client": "npm run build --workspace=client",
     "build:server": "npm run build --workspace=server",

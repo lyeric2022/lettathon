@@ -8,7 +8,7 @@ An AI-powered desktop assistant that captures your screen content and provides i
 - **Voice Recording**: Record audio to provide additional context to your AI assistant
 - **Clipboard Integration**: Includes clipboard content for enhanced context awareness
 - **AI-Powered Analysis**: Uses Letta Cloud agents with GPT-4.1 for intelligent responses
-- **Privacy-First**: OCR processing happens locally before sending to cloud
+- **Privacy-First**: OCR processing happens locally before sending to cloud, filtering out any private information
 - **Modern UI**: Beautiful overlay interface with glass morphism design
 - **Cross-Platform**: Works on macOS, Windows, and Linux
 
@@ -20,9 +20,27 @@ An AI-powered desktop assistant that captures your screen content and provides i
 - Python 3.8+ (for server)
 - Letta Cloud account and API key
 - Groq API key (for voice transcription)
-- **macOS**: Sox (install with `brew install sox`)
-- **Windows**: Sox (download from sox.sourceforge.net)
-- **Linux**: Sox (install with `sudo apt-get install sox`)
+- **Sox** (for audio recording):
+  - **macOS**: `brew install sox`
+  - **Windows**: Download from sox.sourceforge.net
+  - **Linux**: `sudo apt-get install sox`
+
+### Quick System Setup
+
+Choose one of these methods to install system dependencies:
+
+**Option 1: Automated Script (Recommended)**
+```bash
+./install-deps.sh
+```
+
+**Option 2: macOS with Homebrew**
+```bash
+brew bundle
+```
+
+**Option 3: Manual Installation**
+See `requirements.txt` for detailed system requirements.
 
 ### Installation
 
@@ -32,26 +50,29 @@ An AI-powered desktop assistant that captures your screen content and provides i
    cd catfish
    ```
 
-2. **Setup the server**
+2. **Install system dependencies**
    ```bash
-   cd server
-   npm install
-   cp env.example .env
-   # Edit .env with your API keys
-   npm run dev
+   ./install-deps.sh
    ```
 
-3. **Setup the client**
+3. **Install project dependencies**
    ```bash
-   cd client
    npm install
-   npm run dev
    ```
 
 4. **Configure API Keys**
+   ```bash
+   cd server
+   cp env.example .env
+   # Edit .env with your API keys
+   ```
    - Get your Letta API key from [app.letta.com/api-keys](https://app.letta.com/api-keys)
    - Get your Groq API key from [console.groq.com](https://console.groq.com)
-   - Enter your Letta API key in the app setup screen
+
+5. **Start the application**
+   ```bash
+   npm run dev
+   ```
 
 ## Usage
 

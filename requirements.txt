@@ -1,0 +1,19 @@
+# Catfish System Requirements
+# This file lists system-level dependencies that need to be installed before running the project
+
+# Runtime Requirements
+node>=18.0.0
+npm>=8.0.0
+
+# Audio Processing (Required for voice recording feature)
+# macOS: brew install sox
+# Ubuntu/Debian: sudo apt-get install sox
+# Windows: Download from sox.sourceforge.net
+sox
+
+# Optional: For development
+git
+
+# API Keys Required (set in server/.env):
+# - LETTA_API_KEY (from app.letta.com/api-keys)
+# - GROQ_API_KEY (from console.groq.com) 
