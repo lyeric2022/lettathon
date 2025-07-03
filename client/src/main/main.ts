@@ -5,6 +5,8 @@ import pkg from 'electron-updater';
 const { autoUpdater } = pkg;
 import keytar from 'keytar';
 import Store from 'electron-store';
+import recorder from 'node-record-lpcm16';
+import { Readable } from 'stream';
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -20,6 +22,9 @@ class CatfishApp {
   private mainWindow: BrowserWindowType | null = null;
   private overlayWindow: BrowserWindowType | null = null;
   private overlayBounds: { x: number; y: number; width: number; height: number } | null = null;
+  private isRecording: boolean = false;
+  private recordingStream: any = null;
+  private recordingBuffer: Buffer[] = [];
 
   constructor() {
     this.setupApp();
@@ -328,6 +333,19 @@ class CatfishApp {
       await shell.openExternal(url);
     });
 
+    // Audio recording handlers
+    ipcMain.handle('start-recording', async () => {
+      return this.startRecording();
+    });
+
+    ipcMain.handle('stop-recording', async () => {
+      return this.stopRecording();
+    });
+
+    ipcMain.handle('is-recording', async () => {
+      return this.isRecording;
+    });
+
     // Process assistant request
     ipcMain.handle('process-assistant-request', async (_event: IpcMainInvokeEvent, data: any) => {
       try {
@@ -387,72 +405,114 @@ class CatfishApp {
 
   private async activateAssistant(): Promise<void> {
     console.log('🐟 Assistant activation started...');
-    try {
-      // Show loading overlay
-      console.log('🐟 Closing existing overlay if present...');
-      if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
-        // Save bounds before closing
-        const bounds = this.overlayWindow.getBounds();
-        this.overlayBounds = bounds;
-        console.log('🐟 Saving overlay bounds before closing:', bounds);
-        this.overlayWindow.close();
-      }
+    
+    // If currently recording, stop recording and process
+    if (this.isRecording) {
+      console.log('🐟 Recording in progress, stopping and processing...');
       
-      console.log('🐟 Creating new overlay window...');
-      this.overlayWindow = this.createOverlayWindow();
-      this.overlayWindow.once('ready-to-show', () => {
-        console.log('🐟 Overlay ready - sending show-loading and displaying...');
-        this.overlayWindow?.webContents.send('show-loading');
-        this.overlayWindow?.show();
-      });
-
-      // Capture screenshot
-      console.log('🐟 Starting screen capture...');
-      const screenshot = await this.captureScreen();
-      console.log('🐟 Screen capture completed, size:', screenshot.length, 'characters');
-      
-      // Get clipboard content
-      console.log('🐟 Reading clipboard content...');
-      const clipboardContent = clipboard.readText();
-      console.log('🐟 Clipboard content length:', clipboardContent.length, 'characters');
-
-      // Check if main window is available and ready
-      if (!this.mainWindow || this.mainWindow.isDestroyed()) {
-        console.error('🐟 Main window is not available or destroyed');
-        this.overlayWindow?.webContents.send('display-content', 'Error: Main window not available');
-        return;
-      }
-
-      // Check if webContents is ready
-      if (!this.mainWindow.webContents.isLoading() && this.mainWindow.webContents.getURL()) {
-        console.log('🐟 Main window is ready, sending data to renderer...');
-        console.log('🐟 Current URL:', this.mainWindow.webContents.getURL());
+      try {
+        // Show loading overlay
+        console.log('🐟 Closing existing overlay if present...');
+        if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
+          // Save bounds before closing
+          const bounds = this.overlayWindow.getBounds();
+          this.overlayBounds = bounds;
+          console.log('🐟 Saving overlay bounds before closing:', bounds);
+          this.overlayWindow.close();
+        }
         
-        // Send to renderer for processing
-        this.mainWindow.webContents.send('process-assistant-request', {
-          screenshot,
-          clipboard: clipboardContent,
-          timestamp: Date.now()
+        console.log('🐟 Creating new overlay window...');
+        this.overlayWindow = this.createOverlayWindow();
+        this.overlayWindow.once('ready-to-show', () => {
+          console.log('🐟 Overlay ready - sending show-loading and displaying...');
+          this.overlayWindow?.webContents.send('show-loading');
+          this.overlayWindow?.show();
         });
-        console.log('🐟 Data sent to renderer successfully');
-      } else {
-        console.error('🐟 Main window is not ready for communication');
-        console.log('🐟 Window loading state:', this.mainWindow.webContents.isLoading());
-        console.log('🐟 Window URL:', this.mainWindow.webContents.getURL());
-        this.overlayWindow?.webContents.send('display-content', 'Error: Main window not ready. Please try again.');
-      }
 
-    } catch (error) {
-      console.error('🐟 Assistant activation failed:', error);
-      console.error('🐟 Error details:', {
-        name: error instanceof Error ? error.name : 'Unknown',
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
-      });
+        // Stop recording and get audio data
+        const audioData = await this.stopRecording();
+        console.log('🐟 Audio recording stopped, data available:', !!audioData);
+
+        // Capture screenshot
+        console.log('🐟 Starting screen capture...');
+        const screenshot = await this.captureScreen();
+        console.log('🐟 Screen capture completed, size:', screenshot.length, 'characters');
+        
+        // Get clipboard content
+        console.log('🐟 Reading clipboard content...');
+        const clipboardContent = clipboard.readText();
+        console.log('🐟 Clipboard content length:', clipboardContent.length, 'characters');
+
+        // Check if main window is available and ready
+        if (!this.mainWindow || this.mainWindow.isDestroyed()) {
+          console.error('🐟 Main window is not available or destroyed');
+          this.overlayWindow?.webContents.send('display-content', 'Error: Main window not available');
+          return;
+        }
+
+        // Check if webContents is ready
+        if (!this.mainWindow.webContents.isLoading() && this.mainWindow.webContents.getURL()) {
+          console.log('🐟 Main window is ready, sending data to renderer...');
+          console.log('🐟 Current URL:', this.mainWindow.webContents.getURL());
+          
+          // Send to renderer for processing
+          this.mainWindow.webContents.send('process-assistant-request', {
+            screenshot,
+            clipboard: clipboardContent,
+            audio: audioData, // Send as 'audio' to match server interface
+            timestamp: Date.now()
+          });
+          console.log('🐟 Data sent to renderer successfully');
+        } else {
+          console.error('🐟 Main window is not ready for communication');
+          console.log('🐟 Window loading state:', this.mainWindow.webContents.isLoading());
+          console.log('🐟 Window URL:', this.mainWindow.webContents.getURL());
+          this.overlayWindow?.webContents.send('display-content', 'Error: Main window not ready. Please try again.');
+        }
+
+      } catch (error) {
+        console.error('🐟 Assistant activation failed:', error);
+        console.error('🐟 Error details:', {
+          name: error instanceof Error ? error.name : 'Unknown',
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined
+        });
+        
+        if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          this.overlayWindow.webContents.send('display-content', `Error: Failed to activate assistant - ${errorMessage}`);
+        }
+      }
+    } else {
+      // Start recording
+      console.log('🐟 Starting recording mode...');
       
-      if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        this.overlayWindow.webContents.send('display-content', `Error: Failed to activate assistant - ${errorMessage}`);
+      const recordingStarted = await this.startRecording();
+      
+      if (recordingStarted) {
+        // Show recording indicator overlay
+        console.log('🐟 Closing existing overlay if present...');
+        if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
+          // Save bounds before closing
+          const bounds = this.overlayWindow.getBounds();
+          this.overlayBounds = bounds;
+          console.log('🐟 Saving overlay bounds before closing:', bounds);
+          this.overlayWindow.close();
+        }
+        
+        console.log('🐟 Creating recording indicator overlay...');
+        this.overlayWindow = this.createOverlayWindow();
+        this.overlayWindow.once('ready-to-show', () => {
+          console.log('🐟 Recording overlay ready - showing recording indicator...');
+          this.overlayWindow?.webContents.send('display-content', '🎤 Recording... Press Cmd+Shift+A again to stop and process');
+          this.overlayWindow?.show();
+        });
+      } else {
+        console.error('🐟 Failed to start recording');
+        // Show error overlay
+        if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
+          this.overlayWindow.webContents.send('display-content', 'Error: Failed to start audio recording. Please check your microphone permissions.');
+        }
       }
     }
   }
@@ -467,6 +527,112 @@ class CatfishApp {
       return sources[0].thumbnail.toDataURL();
     }
     throw new Error('No screen sources found');
+  }
+
+  private async startRecording(): Promise<boolean> {
+    if (this.isRecording) {
+      console.log('🎤 Already recording, ignoring start request');
+      return false;
+    }
+
+    try {
+      console.log('🎤 Starting audio recording...');
+      
+      // Clear previous recording buffer
+      this.recordingBuffer = [];
+      
+      // Create recording instance
+      this.recordingStream = recorder.record({
+        sampleRate: 16000,
+        channels: 1,
+        compress: false,
+        threshold: 0.5,
+        thresholdStart: undefined,
+        thresholdEnd: undefined,
+        silence: '1.0',
+        verbose: false,
+        recordProgram: 'sox', // or 'rec' on some systems
+      });
+
+      // Set up data collection
+      this.recordingStream.stream().on('data', (chunk: Buffer) => {
+        this.recordingBuffer.push(chunk);
+      });
+
+      this.recordingStream.stream().on('error', (err: Error) => {
+        console.error('🎤 Recording stream error:', err);
+        this.isRecording = false;
+        this.notifyRecordingStatusChanged();
+      });
+
+      // Start recording
+      this.recordingStream.start();
+      this.isRecording = true;
+      
+      console.log('🎤 Recording started successfully');
+      this.notifyRecordingStatusChanged();
+      
+      return true;
+    } catch (error) {
+      console.error('🎤 Failed to start recording:', error);
+      this.isRecording = false;
+      this.notifyRecordingStatusChanged();
+      return false;
+    }
+  }
+
+  private async stopRecording(): Promise<string | null> {
+    if (!this.isRecording) {
+      console.log('🎤 Not recording, ignoring stop request');
+      return null;
+    }
+
+    try {
+      console.log('🎤 Stopping audio recording...');
+      
+      // Stop the recording
+      if (this.recordingStream) {
+        this.recordingStream.stop();
+        this.recordingStream = null;
+      }
+      
+      this.isRecording = false;
+      this.notifyRecordingStatusChanged();
+      
+      // Combine all audio chunks
+      if (this.recordingBuffer.length === 0) {
+        console.log('🎤 No audio data recorded');
+        return null;
+      }
+      
+      const audioBuffer = Buffer.concat(this.recordingBuffer);
+      const audioBase64 = audioBuffer.toString('base64');
+      
+      // Format as data URL for server validation
+      const audioDataUrl = `data:audio/wav;base64,${audioBase64}`;
+      
+      console.log('🎤 Recording stopped, audio data size:', audioBuffer.length, 'bytes');
+      
+      // Clear buffer
+      this.recordingBuffer = [];
+      
+      return audioDataUrl;
+    } catch (error) {
+      console.error('🎤 Failed to stop recording:', error);
+      this.isRecording = false;
+      this.notifyRecordingStatusChanged();
+      return null;
+    }
+  }
+
+  private notifyRecordingStatusChanged(): void {
+    // Notify all windows about recording status change
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      this.mainWindow.webContents.send('recording-status-changed', this.isRecording);
+    }
+    if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
+      this.overlayWindow.webContents.send('recording-status-changed', this.isRecording);
+    }
   }
 }
 

@@ -1,242 +1,184 @@
-# Catfish 🐠
+# Catfish 🐟
 
-> An AI-powered overlay assistant that captures your screen, listens to your audio, and provides intelligent responses using Letta Cloud's stateful agents.
+An AI-powered desktop assistant that captures your screen content and provides intelligent assistance through Letta Cloud.
 
-[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
-[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
-[![Electron](https://img.shields.io/badge/Electron-Latest-blue.svg)](https://www.electronjs.org/)
-[![Letta](https://img.shields.io/badge/Powered%20by-Letta%20Cloud-purple.svg)](https://docs.letta.com/)
+## Features
 
-## ✨ Features
+- **Smart Screen Capture**: Automatically captures and analyzes your screen content using OCR
+- **Voice Recording**: Record audio to provide additional context to your AI assistant
+- **Clipboard Integration**: Includes clipboard content for enhanced context awareness
+- **AI-Powered Analysis**: Uses Letta Cloud agents with GPT-4.1 for intelligent responses
+- **Privacy-First**: OCR processing happens locally before sending to cloud
+- **Modern UI**: Beautiful overlay interface with glass morphism design
+- **Cross-Platform**: Works on macOS, Windows, and Linux
 
-- **🖼️ Screen Capture**: Instantly capture and analyze your screen content with OCR
-- **🎤 Voice Transcription**: Real-time audio transcription and context understanding
-- **📋 Clipboard Integration**: Smart clipboard content analysis
-- **🤖 AI-Powered Responses**: Powered by Letta Cloud's stateful agents with GPT-4 Turbo
-- **💭 Persistent Memory**: Your agent remembers context across sessions
-- **⚡ Quick Access**: Global hotkeys for instant assistance (`Cmd+Shift+A` / `Ctrl+Shift+A`)
-- **🔒 Privacy-First**: OCR processing happens locally, only context sent to Letta Cloud
-
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
-- Node.js 18+ and npm 8+
+- Node.js 18+ and npm
+- Python 3.8+ (for server)
 - Letta Cloud account and API key
+- Groq API key (for voice transcription)
+- **macOS**: Sox (install with `brew install sox`)
+- **Windows**: Sox (download from sox.sourceforge.net)
+- **Linux**: Sox (install with `sudo apt-get install sox`)
 
-### Setup
+### Installation
 
-1. **Create a Letta Cloud account**
-   - Visit [app.letta.com](https://app.letta.com) and sign up
-   - Generate an API key at [app.letta.com/api-keys](https://app.letta.com/api-keys)
-
-2. **Clone and install**
+1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-org/catfish.git
+   git clone <repository-url>
    cd catfish
+   ```
+
+2. **Setup the server**
+   ```bash
+   cd server
    npm install
-   ```
-
-3. **Set up environment variables**
-   ```bash
-   # Create .env file in project root
-   echo "LETTA_API_KEY=your_api_key_here" > .env
-   ```
-
-4. **Deploy your Catfish agent to Letta Cloud**
-   ```bash
-   cd agent
-   npm run setup
-   ```
-   This will create your specialized Catfish agent and save the agent ID to `.env`
-
-5. **Start the application**
-   ```bash
+   cp env.example .env
+   # Edit .env with your API keys
    npm run dev
    ```
 
-### First Run
+3. **Setup the client**
+   ```bash
+   cd client
+   npm install
+   npm run dev
+   ```
 
-1. **Launch the app** - all three services will start automatically
-2. **Grant permissions** for screen capture and microphone access when prompted
-3. **Use the hotkey** `Cmd+Shift+A` (macOS) or `Ctrl+Shift+A` (Windows/Linux) to activate
-4. **Your agent remembers!** Each conversation builds on previous context
+4. **Configure API Keys**
+   - Get your Letta API key from [app.letta.com/api-keys](https://app.letta.com/api-keys)
+   - Get your Groq API key from [console.groq.com](https://console.groq.com)
+   - Enter your Letta API key in the app setup screen
 
-## 🏗️ Architecture
+## Usage
 
+### Voice Recording Workflow
+
+Catfish now supports voice recording for enhanced context. Here's how it works:
+
+1. **Start Recording**: Press `Cmd+Shift+A` (macOS) or `Ctrl+Shift+A` (Windows/Linux)
+   - The overlay will show "🎤 Recording... Press Cmd+Shift+A again to stop and process"
+   - Your microphone will start recording audio
+
+2. **Stop Recording & Process**: Press `Cmd+Shift+A` again
+   - Recording stops automatically
+   - Screen is captured via OCR
+   - Audio is transcribed using Groq's Whisper
+   - Both visual and audio context are sent to your Letta agent
+   - AI response appears in the overlay
+
+### Traditional Workflow (No Voice)
+
+If you prefer not to use voice recording:
+
+1. **Quick Capture**: Press `Cmd+Shift+A` (macOS) or `Ctrl+Shift+A` (Windows/Linux) once
+   - Screen is captured immediately
+   - Clipboard content is included
+   - AI response appears in the overlay
+
+### Overlay Controls
+
+- **Minimize**: Click the `−` button or press `M`
+- **Close**: Click the `×` button or press `Esc`
+- **Resize**: Drag the resize handles on the right, bottom, or corner
+- **Move**: Drag the header area
+- **Toggle**: Use the keyboard shortcut to show/hide
+
+## Configuration
+
+### Server Environment Variables
+
+Create a `.env` file in the `server` directory:
+
+```env
+# Required
+LETTA_API_KEY=sk-let-your-api-key-here
+LETTA_AGENT_ID=agent-your-agent-id-here
+GROQ_API_KEY=gsk_your-groq-api-key-here
+
+# Optional
+NODE_ENV=development
+PORT=3001
+LOG_LEVEL=info
+LETTA_PROJECT=default-project
 ```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Electron      │───▶│   Local Server   │───▶│  Letta Cloud    │
-│   Overlay UI    │    │   Orchestration  │    │   Stateful      │
-└─────────────────┘    └──────────────────┘    │   Agents        │
-        │                       │               └─────────────────┘
-        ▼                       ▼                       │
-┌─────────────────┐    ┌──────────────────┐            ▼
-│ Screen Capture  │    │   Local OCR      │    ┌─────────────────┐
-│ Audio Recording │    │   Privacy-First  │    │ GPT-4 Turbo +   │
-│ Clipboard       │    │   Processing     │    │ Memory + Tools  │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-```
 
-**What happens when you activate Catfish:**
-1. **Screen captured** and processed locally with OCR
-2. **Context prepared** (screen text, clipboard, audio)
-3. **Sent to your Letta agent** which maintains conversation memory
-4. **AI response** displayed in beautiful overlay
-5. **Memory updated** for future conversations
+### Client Settings
 
-## 📁 Project Structure
+Access settings through the app interface:
+
+- **Hotkey**: Customize the activation shortcut
+- **Theme**: Choose between light, dark, or auto
+- **Privacy**: Enable/disable clipboard analysis
+- **Audio**: Enable/disable voice recording (requires microphone permissions)
+
+## Architecture
+
+- **Client**: Electron app with React frontend
+- **Server**: Express.js backend with Letta Cloud integration
+- **AI Agent**: GPT-4.1 model with multi-modal capabilities
+- **Voice**: Groq Whisper for ultra-fast transcription
+- **OCR**: Tesseract for local text extraction
+- **Security**: Local OCR processing, secure API key storage
+
+## Development
+
+### Project Structure
 
 ```
 catfish/
-├── client/           # Electron + React overlay application
-├── server/           # Local API server (communicates with Letta Cloud)
-├── agent/            # Letta agent setup and custom tools
-├── docs/             # Documentation and guides
-├── .github/          # CI/CD workflows
-├── LICENSE           # MIT license
-└── README.md         # You are here
+├── client/          # Electron app
+│   ├── src/
+│   │   ├── main/    # Main process
+│   │   ├── renderer/# React frontend
+│   │   └── preload/ # Preload scripts
+├── server/          # Express backend
+│   ├── src/
+│   │   ├── routes/  # API endpoints
+│   │   ├── services/# Business logic
+│   │   └── utils/   # Utilities
+└── docs/            # Documentation
 ```
 
-## 🛠️ Development
-
-### Running Locally
+### Building
 
 ```bash
-# Install dependencies
-npm install
-
-# Set up your Letta agent (one-time setup)
-cd agent && npm run setup
-
-# Start all services in development mode
-npm run dev
-```
-
-Individual services:
-```bash
-npm run dev:client   # Electron app (port 3000)
-npm run dev:server   # Local API server (port 3001) 
-# No local agent needed - uses Letta Cloud!
-```
-
-### Building for Production
-
-```bash
-# Build all components
-npm run build
-
-# Package Electron app
+# Client
 cd client
-npm run package:mac    # macOS
-npm run package:win    # Windows
-npm run package:linux  # Linux
+npm run build
+npm run package
+
+# Server
+cd server
+npm run build
 ```
 
-## 🔧 Configuration
+## Troubleshooting
 
-### Environment Variables
+### Audio Recording Issues
 
-Create a `.env` file in the root directory:
-
-```env
-# Required: Letta Cloud Configuration
-LETTA_API_KEY=your_letta_api_key_here
-LETTA_AGENT_ID=agent-xxxxxxxxxx  # Auto-generated by setup
-
-# Optional: Letta Configuration
-LETTA_PROJECT=default  # Your Letta project name (defaults to 'default')
-
-# Optional: Server Configuration
-SERVER_PORT=3001
-NODE_ENV=development
-CORS_ORIGIN=http://localhost:3000
-
-# Optional: For enhanced local processing
-OPENAI_API_KEY=your_openai_key  # If you want better local OCR
-```
-
-### Agent Customization
-
-Your Catfish agent can be customized by editing `agent/src/agent-setup.ts`:
-
-```typescript
-const config = {
-  memoryBlocks: [
-    { label: 'human', value: 'User preferences and context' },
-    { label: 'persona', value: 'Your agent personality' },
-    { label: 'context', value: 'Session context', description: '...' }
-  ],
-  tools: ['web_search', 'run_code', 'catfish_ocr'],
-  model: 'openai/gpt-4.1',  // or try 'anthropic/claude-3-sonnet'
-};
-```
-
-## 🔒 Privacy & Security
-
-- **🔐 Local OCR**: Screen text extracted locally, only context sent to cloud
-- **🔑 Secure Storage**: API keys stored in OS keychain/credential manager  
-- **🛡️ HTTPS Only**: All communication encrypted with Letta Cloud
-- **🧠 Smart Memory**: Agent remembers context without storing raw screenshots
-- **🚫 No Telemetry**: We don't collect usage data
-
-## 🤝 Contributing
-
-We welcome contributions! Please read our [Contributing Guide](CONTRIBUTING.md).
-
-```bash
-# Fork, clone, and create feature branch
-git checkout -b feature/amazing-feature
-
-# Make changes and test
-npm test
-
-# Commit and push
-git commit -m 'Add amazing feature'
-git push origin feature/amazing-feature
-```
-
-## 📱 Supported Platforms
-
-- ✅ **macOS** 10.15+ (Intel & Apple Silicon)
-- ✅ **Windows** 10+ (x64)
-- ✅ **Linux** (Ubuntu 18+, AppImage)
-
-## 🐛 Troubleshooting
+1. **Microphone Permissions**: Ensure the app has microphone access
+2. **Sox Installation**: Make sure Sox is installed and in PATH
+3. **Audio Drivers**: Check your system's audio input devices
 
 ### Common Issues
 
-**Agent setup fails?**
-```bash
-# Check your API key is valid
-cd agent && npm run setup
-```
+- **Port 3001 in use**: Change the server port in `.env`
+- **API Key errors**: Verify your Letta and Groq API keys
+- **OCR not working**: Check Tesseract installation
+- **Overlay not showing**: Try the toggle shortcut
 
-**Screen capture not working?**
-- Grant screen recording permissions in System Preferences (macOS)
-- Run as administrator if needed (Windows)
+## Contributing
 
-**"Agent not found" error?**
-- Make sure `LETTA_AGENT_ID` is set in your `.env` file
-- Run `cd agent && npm run setup` to recreate your agent
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
 
-**Letta API errors?**
-- Verify your `LETTA_API_KEY` is correct
-- Check your Letta Cloud quota at [app.letta.com](https://app.letta.com)
+## License
 
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- [Letta](https://docs.letta.com/) for the AI agent platform
-- [Electron](https://www.electronjs.org/) for cross-platform desktop framework
-- [Tesseract.js](https://tesseract.projectnaptha.com/) for OCR capabilities
-- The open-source community for inspiration and contributions
-
----
-
-<div align="center">
-  <strong>Made with ❤️ by the Catfish community</strong>
-</div> 
+MIT License - see LICENSE file for details 

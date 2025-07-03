@@ -59,6 +59,14 @@ function logConfigurationStatus(): void {
   
   logger.info(`📂 LETTA_PROJECT: ${lettaProject || 'default'}`);
   
+  // Groq Configuration (for voice transcription)
+  const groqApiKey = process.env.GROQ_API_KEY;
+  if (groqApiKey) {
+    logger.info(`🎤 GROQ_API_KEY: ✅ Found (${groqApiKey.substring(0, 10)}...)`);
+  } else {
+    logger.warn('🎤 GROQ_API_KEY: ⚠️  Missing - Voice transcription will be disabled');
+  }
+  
   // Environment file check
   const fs = require('fs');
   const path = require('path');
@@ -140,6 +148,9 @@ class CatfishServer {
             agentId: process.env.LETTA_AGENT_ID ? 'configured' : 'missing',
             project: process.env.LETTA_PROJECT || 'default',
             connection: health
+          },
+          voice: {
+            groqApiKey: process.env.GROQ_API_KEY ? 'configured' : 'missing'
           }
         });
       } catch (error) {

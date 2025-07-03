@@ -156,6 +156,13 @@ const HeaderSubtitle = styled.span`
   -webkit-app-region: drag;
 `;
 
+const RecordingIndicator = styled.span`
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.2;
+  -webkit-app-region: drag;
+`;
+
 const Controls = styled.div`
   display: flex;
   align-items: center;
@@ -411,6 +418,7 @@ interface OverlayState {
   isLoading: boolean;
   content: string;
   isMinimized: boolean;
+  isRecording: boolean;
 }
 
 export const OverlayApp: React.FC = () => {
@@ -418,7 +426,8 @@ export const OverlayApp: React.FC = () => {
     isVisible: false,
     isLoading: false,
     content: '',
-    isMinimized: false
+    isMinimized: false,
+    isRecording: false
   });
   
   const [isResizing, setIsResizing] = useState(false);
@@ -459,6 +468,13 @@ export const OverlayApp: React.FC = () => {
     if (window.electronAPI?.onToggleOverlay) {
       window.electronAPI.onToggleOverlay(() => {
         setState(prev => ({ ...prev, isVisible: !prev.isVisible }));
+      });
+    }
+
+    // Listen for recording status changes
+    if (window.electronAPI?.onRecordingStatusChanged) {
+      window.electronAPI.onRecordingStatusChanged((isRecording: boolean) => {
+        setState(prev => ({ ...prev, isRecording }));
       });
     }
 
@@ -575,7 +591,14 @@ export const OverlayApp: React.FC = () => {
                     <HeaderContent>
                       <AssistantIcon>🤖</AssistantIcon>
                       <HeaderText>
-                        <HeaderTitle>Catfish Assistant</HeaderTitle>
+                        <HeaderTitle>
+                          Catfish Assistant
+                          {state.isRecording && (
+                            <RecordingIndicator>
+                              🎤 Recording
+                            </RecordingIndicator>
+                          )}
+                        </HeaderTitle>
                         <HeaderSubtitle>AI-powered screen analysis</HeaderSubtitle>
                       </HeaderText>
                     </HeaderContent>

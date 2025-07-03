@@ -31,6 +31,7 @@ export default function App() {
         console.log('🐟 Received process-assistant-request:', {
           screenshotLength: data.screenshot?.length || 0,
           clipboardLength: data.clipboard?.length || 0,
+          audioLength: data.audio?.length || 0,
           timestamp: data.timestamp
         });
         handleAssistantRequest(data);
@@ -95,6 +96,7 @@ export default function App() {
     console.log('🐟 Request data:', {
       screenshotLength: data.screenshot?.length || 0,
       clipboardLength: data.clipboard?.length || 0,
+      audioLength: data.audio?.length || 0,
       timestamp: data.timestamp
     });
     

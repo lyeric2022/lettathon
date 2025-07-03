@@ -50,5 +50,10 @@
   "bugs": {
     "url": "https://github.com/your-org/catfish/issues"
   },
-  "homepage": "https://github.com/your-org/catfish#readme"
-} 
+  "homepage": "https://github.com/your-org/catfish#readme",
+  "dependencies": {
+    "@letta-ai/letta-client": "^0.1.148",
+    "dotenv": "^17.0.1",
+    "node-record-lpcm16": "^1.0.1"
+  }
+}
