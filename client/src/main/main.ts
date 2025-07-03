@@ -606,7 +606,10 @@ class CatfishApp {
       }
       
       const audioBuffer = Buffer.concat(this.recordingBuffer);
-      const audioBase64 = audioBuffer.toString('base64');
+      
+      // Convert raw PCM to WAV format
+      const wavBuffer = this.convertPCMToWAV(audioBuffer, 16000, 1);
+      const audioBase64 = wavBuffer.toString('base64');
       
       // Format as data URL for server validation
       const audioDataUrl = `data:audio/wav;base64,${audioBase64}`;
@@ -633,6 +636,39 @@ class CatfishApp {
     if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
       this.overlayWindow.webContents.send('recording-status-changed', this.isRecording);
     }
+  }
+
+  private convertPCMToWAV(pcmBuffer: Buffer, sampleRate: number, channels: number): Buffer {
+    // WAV file header structure
+    const dataLength = pcmBuffer.length;
+    const headerLength = 44;
+    const totalLength = headerLength + dataLength;
+    
+    const buffer = Buffer.alloc(totalLength);
+    
+    // RIFF header
+    buffer.write('RIFF', 0);
+    buffer.writeUInt32LE(totalLength - 8, 4);
+    buffer.write('WAVE', 8);
+    
+    // fmt chunk
+    buffer.write('fmt ', 12);
+    buffer.writeUInt32LE(16, 16); // fmt chunk size
+    buffer.writeUInt16LE(1, 20); // PCM format
+    buffer.writeUInt16LE(channels, 22);
+    buffer.writeUInt32LE(sampleRate, 24);
+    buffer.writeUInt32LE(sampleRate * channels * 2, 28); // byte rate
+    buffer.writeUInt16LE(channels * 2, 32); // block align
+    buffer.writeUInt16LE(16, 34); // bits per sample
+    
+    // data chunk
+    buffer.write('data', 36);
+    buffer.writeUInt32LE(dataLength, 40);
+    
+    // Copy PCM data
+    pcmBuffer.copy(buffer, headerLength);
+    
+    return buffer;
   }
 }
 
