@@ -1,10 +1,6 @@
 # Dependencies Guide
 
-This guide explains how to install all dependencies for the Catfish project.
-
 ## Dependency Files
-
-This project provides several files to help you install dependencies easily:
 
 ### System Dependencies
 

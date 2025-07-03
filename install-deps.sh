@@ -1,14 +1,10 @@
-#!/bin/bash
-
 # Catfish System Dependencies Installation Script
-# This script helps install system-level dependencies for the Catfish project
 
 set -e
 
 echo "🐟 Catfish System Dependencies Installer"
 echo "========================================"
 
-# Detect OS
 OS=""
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     OS="linux"
@@ -23,7 +19,6 @@ fi
 
 echo "📱 Detected OS: $OS"
 
-# Check Node.js version
 check_node() {
     if command -v node &> /dev/null; then
         NODE_VERSION=$(node --version | sed 's/v//')
@@ -41,7 +36,6 @@ check_node() {
     fi
 }
 
-# Check Sox
 check_sox() {
     if command -v sox &> /dev/null; then
         SOX_VERSION=$(sox --version | head -n1)
@@ -95,7 +89,6 @@ install_deps() {
     esac
 }
 
-# Main installation flow
 echo ""
 echo "🔍 Checking current dependencies..."
 
