@@ -140,15 +140,19 @@ class CatfishApp {
     const { width, height } = screen.getPrimaryDisplay().workAreaSize;
     
     const overlay = new BrowserWindow({
-      width: 400,
-      height: 300,
-      x: width - 420,
+      width: 980,
+      height: 600,
+      x: width - 1000,
       y: 20,
       frame: false,
       alwaysOnTop: true,
       transparent: true,
-      resizable: false,
+      resizable: true,
+      movable: true,
+      minimizable: false,
+      maximizable: false,
       skipTaskbar: true,
+      hasShadow: true,
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
@@ -170,6 +174,11 @@ class CatfishApp {
     
     globalShortcut.register(shortcut, () => {
       this.activateAssistant();
+    });
+    
+    // Toggle overlay visibility
+    globalShortcut.register('CommandOrControl+Shift+O', () => {
+      this.toggleOverlay();
     });
     
     // Debug shortcut to reload main app
@@ -237,15 +246,19 @@ class CatfishApp {
           this.overlayWindow?.show();
         });
       }
+      // No auto-hide - overlay stays visible until manually toggled
+    });
 
-      // Auto-hide after 10 seconds
-      setTimeout(() => {
-        if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
-          console.log('🐟 Auto-hiding overlay...');
-          this.overlayWindow.close();
-          this.overlayWindow = null;
-        }
-      }, 10000);
+    // Toggle overlay visibility
+    ipcMain.handle('toggle-overlay', () => {
+      this.toggleOverlay();
+    });
+
+    // Window resize handlers
+    ipcMain.handle('resize-window', (_event: IpcMainInvokeEvent, width: number, height: number) => {
+      if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
+        this.overlayWindow.setSize(width, height);
+      }
     });
 
     // Get app settings
@@ -300,6 +313,27 @@ class CatfishApp {
         throw error;
       }
     });
+  }
+
+  private toggleOverlay(): void {
+    console.log('🐟 Toggle overlay called...');
+    
+    if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
+      if (this.overlayWindow.isVisible()) {
+        console.log('🐟 Hiding overlay...');
+        this.overlayWindow.hide();
+      } else {
+        console.log('🐟 Showing overlay...');
+        this.overlayWindow.show();
+      }
+    } else {
+      console.log('🐟 No overlay window exists, creating one...');
+      this.overlayWindow = this.createOverlayWindow();
+      this.overlayWindow.once('ready-to-show', () => {
+        console.log('🐟 New overlay ready - showing...');
+        this.overlayWindow?.show();
+      });
+    }
   }
 
   private async activateAssistant(): Promise<void> {

@@ -8,6 +8,8 @@ export interface ElectronAPI {
   
   // Overlay management
   showOverlay: (content: string) => Promise<void>;
+  toggleOverlay: () => Promise<void>;
+  resizeWindow: (width: number, height: number) => Promise<void>;
   
   // Settings management
   getSettings: () => Promise<any>;
@@ -23,6 +25,7 @@ export interface ElectronAPI {
   onProcessAssistantRequest?: (callback: (data: any) => void) => void;
   onDisplayContent?: (callback: (content: string) => void) => void;
   onShowLoading?: (callback: () => void) => void;
+  onToggleOverlay?: (callback: () => void) => void;
 }
 
 declare global {

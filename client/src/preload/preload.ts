@@ -14,6 +14,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // Overlay management
   showOverlay: (content: string) => ipcRenderer.invoke('show-overlay', content),
+  toggleOverlay: () => ipcRenderer.invoke('toggle-overlay'),
+  resizeWindow: (width: number, height: number) => ipcRenderer.invoke('resize-window', width, height),
   
   // Settings
   getSettings: () => ipcRenderer.invoke('get-settings'),
@@ -36,6 +38,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   onShowLoading: (callback: () => void) => {
     ipcRenderer.on('show-loading', () => callback());
+  },
+  
+  onToggleOverlay: (callback: () => void) => {
+    ipcRenderer.on('toggle-overlay', () => callback());
   },
   
   // Remove listeners
