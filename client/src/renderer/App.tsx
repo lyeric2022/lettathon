@@ -5,11 +5,10 @@ import { useHotkeys } from 'react-hotkeys-hook';
 import { SetupScreen } from './components/SetupScreen';
 import { MainScreen } from './components/MainScreen';
 import { OverlayScreen } from './components/OverlayScreen';
-import { SettingsScreen } from './components/SettingsScreen';
 import { theme } from './theme';
 import type { ElectronAPI } from '../types/electron';
 
-type AppState = 'setup' | 'main' | 'settings';
+type AppState = 'setup' | 'main';
 
 export default function App() {
   console.log('🐟 React App component initializing...');
@@ -78,13 +77,7 @@ export default function App() {
     setAppState('main');
   };
 
-  const handleShowSettings = () => {
-    setAppState('settings');
-  };
 
-  const handleBackToMain = () => {
-    setAppState('main');
-  };
 
   const handleCloseOverlay = () => {
     setIsOverlayVisible(false);
@@ -170,14 +163,6 @@ export default function App() {
           {appState === 'main' && (
             <MainScreen 
               key="main"
-              onShowSettings={handleShowSettings}
-            />
-          )}
-          
-          {appState === 'settings' && (
-            <SettingsScreen 
-              key="settings"
-              onBack={handleBackToMain}
             />
           )}
         </AnimatePresence>

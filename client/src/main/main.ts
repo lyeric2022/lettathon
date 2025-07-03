@@ -33,7 +33,53 @@ class CatfishApp {
   private async setupApp(): Promise<void> {
     // Handle app ready
     app.whenReady().then(async () => {
-      this.createMainWindow();
+      // Don't create main window - we'll just use the overlay
+      // this.createMainWindow();
+      
+      // Create overlay window on startup
+      this.overlayWindow = this.createOverlayWindow();
+      
+      // Show overlay with intro message after it's ready
+      this.overlayWindow.once('ready-to-show', () => {
+        console.log('🐟 Overlay ready-to-show event fired');
+        this.overlayWindow?.show();
+        
+        this.overlayWindow?.webContents.once('did-finish-load', () => {
+          console.log('🐟 Overlay webContents finished loading');
+          // Add a longer delay to ensure React component is fully mounted
+          setTimeout(() => {
+            const introMessage = `# Welcome to Catfish
+
+Your AI assistant is ready to help!
+
+**Quick Start:**
+• Press **⌘⇧A** (Mac) or **Ctrl⇧A** (Windows/Linux) to activate
+• Start recording to ask questions with voice
+• I can analyze your screen and help with any task
+
+**Features:**
+• Voice commands
+• Screen analysis  
+• Clipboard integration
+• Instant assistance
+
+Press **⌘⇧A** to get started!`;
+            
+            console.log('🐟 Sending intro message to overlay...');
+            this.overlayWindow?.webContents.send('display-content', introMessage);
+            console.log('🐟 Intro message sent');
+          }, 500); // Increased delay from 200ms to 500ms
+        });
+      });
+      
+      // Open demo.html in default browser
+      const demoPath = process.env.NODE_ENV === 'development'
+        ? 'http://localhost:3000/demo.html'
+        : `file://${join(__dirname, '../renderer/demo.html')}`;
+      
+      console.log('🐟 Opening demo.html:', demoPath);
+      await shell.openExternal(demoPath);
+      
       await this.registerShortcuts();
       await this.setupIPC();
       autoUpdater.checkForUpdatesAndNotify();
@@ -47,9 +93,10 @@ class CatfishApp {
     });
 
     app.on('activate', () => {
-      if (BrowserWindow.getAllWindows().length === 0) {
-        this.createMainWindow();
-      }
+      // Don't create main window on activate
+      // if (BrowserWindow.getAllWindows().length === 0) {
+      //   this.createMainWindow();
+      // }
     });
 
     // Security: Prevent new window creation
@@ -62,6 +109,7 @@ class CatfishApp {
   }
 
   private createMainWindow(): void {
+    // This method is no longer used, but keeping it in case needed later
     console.log('🐟 Creating main window...');
     this.mainWindow = new BrowserWindow({
       width: 400,
@@ -83,7 +131,7 @@ class CatfishApp {
     if (process.env.NODE_ENV === 'development') {
       console.log('🐟 Loading development URL: http://localhost:3000');
       this.mainWindow!.loadURL('http://localhost:3000');
-      this.mainWindow!.webContents.openDevTools();
+      // Don't auto-open DevTools - let user open manually if needed
       
       // Add navigation tracking
       this.mainWindow!.webContents.on('will-navigate', (event, navigationUrl) => {
@@ -144,6 +192,7 @@ class CatfishApp {
 
   private createOverlayWindow(): BrowserWindowType {
     const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+    console.log('🐟 Primary display work area:', { width, height });
     
     // Use saved bounds if available, otherwise use default dimensions
     let overlayWidth: number;
@@ -157,14 +206,16 @@ class CatfishApp {
       overlayHeight = this.overlayBounds.height;
       overlayX = this.overlayBounds.x;
       overlayY = this.overlayBounds.y;
+      console.log('🐟 Using saved overlay bounds:', this.overlayBounds);
     } else {
       // Calculate default overlay dimensions: 75% width, 1/3 height
       overlayWidth = Math.floor(width * 0.75);
-      overlayHeight = Math.floor(height / 3);
+      overlayHeight = Math.floor(height * 0.5);
       
       // Position at center top with some margin
       overlayX = Math.floor((width - overlayWidth) / 2);
       overlayY = 20; // 20px from top
+      console.log('🐟 Using default overlay bounds:', { overlayWidth, overlayHeight, overlayX, overlayY });
     }
     
     const overlay = new BrowserWindow({
@@ -188,11 +239,19 @@ class CatfishApp {
       },
     });
 
+    // Set overlay to be visible on all workspaces (macOS specific)
+    if (process.platform === 'darwin') {
+      overlay.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+      console.log('🐟 Set overlay visible on all workspaces (macOS)');
+    }
+
     if (process.env.NODE_ENV === 'development') {
       overlay.loadURL('http://localhost:3000/overlay.html');
     } else {
       overlay.loadFile(join(__dirname, '../renderer/overlay.html'));
     }
+
+    console.log('🐟 Overlay window created with bounds:', overlay.getBounds());
 
     // Save bounds when window is moved or resized
     overlay.on('moved', () => {
@@ -214,6 +273,11 @@ class CatfishApp {
         this.overlayBounds = bounds;
         console.log('🐟 Overlay closed, saved bounds:', bounds);
       }
+    });
+
+    // Show overlay on startup
+    overlay.once('ready-to-show', () => {
+      overlay.show();
     });
 
     return overlay;
@@ -247,21 +311,8 @@ class CatfishApp {
 
   private async setupIPC(): Promise<void> {
     // Capture screenshot
-    ipcMain.handle('capture-screen', async () => {
-      try {
-        const sources = await desktopCapturer.getSources({
-          types: ['screen'],
-          thumbnailSize: { width: 1920, height: 1080 }
-        });
-        
-        if (sources.length > 0) {
-          return sources[0].thumbnail.toDataURL();
-        }
-        throw new Error('No screen sources found');
-      } catch (error) {
-        console.error('Screen capture failed:', error);
-        throw error;
-      }
+    ipcMain.handle('capture-screen', () => {
+      return this.captureScreen();
     });
 
     // Store API key securely
@@ -288,18 +339,55 @@ class CatfishApp {
     // Show/hide overlay
     ipcMain.handle('show-overlay', (_event: IpcMainInvokeEvent, content: string) => {
       console.log('🐟 show-overlay called with content length:', content.length);
+      console.log('🐟 Overlay window exists:', !!this.overlayWindow);
+      console.log('🐟 Overlay window destroyed:', this.overlayWindow?.isDestroyed());
       
       if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
         console.log('🐟 Sending content to existing overlay...');
-        this.overlayWindow.webContents.send('display-content', content);
+        console.log('🐟 Overlay window visible before show():', this.overlayWindow.isVisible());
+        console.log('🐟 Overlay window bounds:', this.overlayWindow.getBounds());
+        
+        // Ensure the webContents is ready
+        if (this.overlayWindow.webContents.isLoading()) {
+          console.log('🐟 Overlay webContents is still loading, waiting...');
+          this.overlayWindow.webContents.once('did-finish-load', () => {
+            console.log('🐟 Overlay webContents finished loading, sending content after delay...');
+            // Add small delay to ensure React component is mounted
+            setTimeout(() => {
+              this.overlayWindow?.webContents.send('display-content', content);
+              console.log('🐟 Content sent to overlay');
+            }, 100);
+          });
+        } else {
+          console.log('🐟 Overlay webContents is ready, sending content after delay...');
+          // Add small delay to ensure React component is mounted
+          setTimeout(() => {
+            this.overlayWindow?.webContents.send('display-content', content);
+            console.log('🐟 Content sent to overlay');
+          }, 100);
+        }
+        
         this.overlayWindow.show();
+        console.log('🐟 Overlay window visible after show():', this.overlayWindow.isVisible());
+        console.log('🐟 Overlay window focused:', this.overlayWindow.isFocused());
       } else {
         console.log('🐟 Creating new overlay window...');
         this.overlayWindow = this.createOverlayWindow();
         this.overlayWindow.once('ready-to-show', () => {
           console.log('🐟 New overlay ready - sending content and showing...');
-          this.overlayWindow?.webContents.send('display-content', content);
-          this.overlayWindow?.show();
+          console.log('🐟 New overlay bounds:', this.overlayWindow?.getBounds());
+          
+          // Wait for webContents to be ready
+          this.overlayWindow?.webContents.once('did-finish-load', () => {
+            console.log('🐟 New overlay webContents finished loading, sending content after delay...');
+            // Add small delay to ensure React component is mounted
+            setTimeout(() => {
+              this.overlayWindow?.webContents.send('display-content', content);
+              console.log('🐟 Content sent to new overlay');
+              this.overlayWindow?.show();
+              console.log('🐟 New overlay visible after show():', this.overlayWindow?.isVisible());
+            }, 100);
+          });
         });
       }
       // No auto-hide - overlay stays visible until manually toggled
@@ -426,12 +514,12 @@ class CatfishApp {
       console.log('🎤 Audio recording is disabled in settings');
       // Show a brief message in overlay
       if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
-        this.overlayWindow.webContents.send('display-content', '🎤 Audio recording is disabled. Enable it in settings to use microphone features.');
+        this.overlayWindow.webContents.send('display-content', 'Audio recording is disabled. Enable it in settings to use microphone features.');
         this.overlayWindow.show();
       } else {
         this.overlayWindow = this.createOverlayWindow();
         this.overlayWindow.once('ready-to-show', () => {
-          this.overlayWindow?.webContents.send('display-content', '🎤 Audio recording is disabled. Enable it in settings to use microphone features.');
+          this.overlayWindow?.webContents.send('display-content', 'Audio recording is disabled. Enable it in settings to use microphone features.');
           this.overlayWindow?.show();
         });
       }
@@ -446,13 +534,13 @@ class CatfishApp {
       if (audioData) {
         // Show recording stopped message
         if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
-          this.overlayWindow.webContents.send('display-content', '🎤 Recording stopped. Press Cmd+Shift+A to process with screen capture.');
+          this.overlayWindow.webContents.send('display-content', 'Recording stopped. Press Cmd+Shift+A to process with screen capture.');
           this.overlayWindow.show();
         }
       } else {
         // Show error message
         if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
-          this.overlayWindow.webContents.send('display-content', '🎤 Recording stopped but no audio data captured.');
+          this.overlayWindow.webContents.send('display-content', 'Recording stopped but no audio data captured.');
           this.overlayWindow.show();
         }
       }
@@ -464,12 +552,12 @@ class CatfishApp {
       if (recordingStarted) {
         // Show recording indicator in existing overlay or create new one
         if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
-          this.overlayWindow.webContents.send('display-content', '🎤 Recording... Press Ctrl+Shift+M to stop or Cmd+Shift+A to process');
+          this.overlayWindow.webContents.send('display-content', 'Recording... Press Ctrl+Shift+M to stop or Cmd+Shift+A to process');
           this.overlayWindow.show();
         } else {
           this.overlayWindow = this.createOverlayWindow();
           this.overlayWindow.once('ready-to-show', () => {
-            this.overlayWindow?.webContents.send('display-content', '🎤 Recording... Press Ctrl+Shift+M to stop or Cmd+Shift+A to process');
+            this.overlayWindow?.webContents.send('display-content', 'Recording... Press Ctrl+Shift+M to stop or Cmd+Shift+A to process');
             this.overlayWindow?.show();
           });
         }
@@ -500,15 +588,33 @@ class CatfishApp {
         // Show loading overlay (keep existing overlay if present)
         if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
           console.log('🐟 Using existing overlay for loading...');
-          this.overlayWindow.webContents.send('show-loading');
+          if (this.overlayWindow.webContents.isLoading()) {
+            console.log('🐟 Overlay is loading, waiting to send show-loading...');
+            this.overlayWindow.webContents.once('did-finish-load', () => {
+              setTimeout(() => {
+                this.overlayWindow?.webContents.send('show-loading');
+                console.log('🐟 show-loading sent to overlay');
+              }, 100);
+            });
+          } else {
+            setTimeout(() => {
+              this.overlayWindow?.webContents.send('show-loading');
+              console.log('🐟 show-loading sent to overlay');
+            }, 100);
+          }
           this.overlayWindow.show();
         } else {
           console.log('🐟 Creating new overlay window for loading...');
           this.overlayWindow = this.createOverlayWindow();
           this.overlayWindow.once('ready-to-show', () => {
             console.log('🐟 New overlay ready - sending show-loading and displaying...');
-            this.overlayWindow?.webContents.send('show-loading');
-            this.overlayWindow?.show();
+            this.overlayWindow?.webContents.once('did-finish-load', () => {
+              setTimeout(() => {
+                this.overlayWindow?.webContents.send('show-loading');
+                console.log('🐟 show-loading sent to new overlay');
+                this.overlayWindow?.show();
+              }, 100);
+            });
           });
         }
 
@@ -518,39 +624,94 @@ class CatfishApp {
 
         // Capture screenshot
         console.log('🐟 Starting screen capture...');
-        const screenshot = await this.captureScreen();
-        console.log('🐟 Screen capture completed, size:', screenshot.length, 'characters');
+        let screenshot = '';
+        try {
+          screenshot = await this.captureScreen();
+          console.log('🐟 Screen capture completed, size:', screenshot.length, 'characters');
+        } catch (error) {
+          console.error('🐟 Screen capture failed:', error);
+          // Continue without screenshot - we still have audio and clipboard
+          screenshot = '';
+          console.log('🐟 Continuing without screenshot due to capture failure');
+        }
         
         // Get clipboard content
         console.log('🐟 Reading clipboard content...');
         const clipboardContent = clipboard.readText();
         console.log('🐟 Clipboard content length:', clipboardContent.length, 'characters');
 
-        // Check if main window is available and ready
-        if (!this.mainWindow || this.mainWindow.isDestroyed()) {
-          console.error('🐟 Main window is not available or destroyed');
-          this.overlayWindow?.webContents.send('display-content', 'Error: Main window not available');
-          return;
-        }
-
-        // Check if webContents is ready
-        if (!this.mainWindow.webContents.isLoading() && this.mainWindow.webContents.getURL()) {
-          console.log('🐟 Main window is ready, sending data to renderer...');
-          console.log('🐟 Current URL:', this.mainWindow.webContents.getURL());
-          
-          // Send to renderer for processing
-          this.mainWindow.webContents.send('process-assistant-request', {
-            screenshot,
-            clipboard: clipboardContent,
-            audio: audioData, // Send as 'audio' to match server interface
-            timestamp: Date.now()
+        // Process the request directly here instead of sending to main window
+        console.log('🐟 Processing assistant request directly...');
+        
+        try {
+          const response = await fetch('http://localhost:3001/api/assistant', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer dev-token-for-local-development'
+            },
+            body: JSON.stringify({
+              screenshot,
+              clipboard: clipboardContent,
+              audio: audioData,
+              timestamp: Date.now()
+            })
           });
-          console.log('🐟 Data sent to renderer successfully');
-        } else {
-          console.error('🐟 Main window is not ready for communication');
-          console.log('🐟 Window loading state:', this.mainWindow.webContents.isLoading());
-          console.log('🐟 Window URL:', this.mainWindow.webContents.getURL());
-          this.overlayWindow?.webContents.send('display-content', 'Error: Main window not ready. Please try again.');
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Server error: ${response.status} - ${errorText}`);
+          }
+
+          const result = await response.json();
+          console.log('🐟 Assistant request completed successfully');
+          console.log('🐟 Result structure:', {
+            success: result.success,
+            hasResult: !!result.result,
+            resultType: typeof result.result,
+            hasAnswer: !!result.result?.answer,
+            answerLength: result.result?.answer?.length || 0
+          });
+          
+          // Show the response in overlay
+          let responseText = '';
+          if (result.success && result.result && result.result.answer) {
+            responseText = result.result.answer;
+          } else if (result.result && typeof result.result === 'string') {
+            responseText = result.result;
+          } else if (result.answer) {
+            responseText = result.answer;
+          } else {
+            responseText = 'Processing completed but no response text found.';
+          }
+          
+          console.log('🐟 Extracted response text:', responseText.substring(0, 100) + '...');
+          
+          // Display the response
+          if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
+            console.log('🐟 Showing response in overlay...');
+            if (this.overlayWindow.webContents.isLoading()) {
+              this.overlayWindow.webContents.once('did-finish-load', () => {
+                setTimeout(() => {
+                  this.overlayWindow?.webContents.send('display-content', responseText);
+                  console.log('🐟 Response sent to overlay');
+                }, 100);
+              });
+            } else {
+              setTimeout(() => {
+                this.overlayWindow?.webContents.send('display-content', responseText);
+                console.log('🐟 Response sent to overlay');
+              }, 100);
+            }
+          }
+          
+        } catch (error) {
+          console.error('🐟 Assistant request failed:', error);
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          
+          if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
+            this.overlayWindow.webContents.send('display-content', `Error: ${errorMessage}`);
+          }
         }
 
       } catch (error) {
@@ -576,14 +737,14 @@ class CatfishApp {
         // Show recording indicator overlay (keep existing overlay if present)
         if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
           console.log('🐟 Using existing overlay for recording indicator...');
-          this.overlayWindow.webContents.send('display-content', '🎤 Recording... Press Cmd+Shift+A again to stop and process');
+          this.overlayWindow.webContents.send('display-content', 'Recording... Press ⌘⇧A again to stop and process');
           this.overlayWindow.show();
         } else {
           console.log('🐟 Creating recording indicator overlay...');
           this.overlayWindow = this.createOverlayWindow();
           this.overlayWindow.once('ready-to-show', () => {
             console.log('🐟 Recording overlay ready - showing recording indicator...');
-            this.overlayWindow?.webContents.send('display-content', '🎤 Recording... Press Cmd+Shift+A again to stop and process');
+            this.overlayWindow?.webContents.send('display-content', 'Recording... Press ⌘⇧A again to stop and process');
             this.overlayWindow?.show();
           });
         }
@@ -602,18 +763,6 @@ class CatfishApp {
         }
       }
     }
-  }
-
-  private async captureScreen(): Promise<string> {
-    const sources = await desktopCapturer.getSources({
-      types: ['screen'],
-      thumbnailSize: { width: 1920, height: 1080 }
-    });
-    
-    if (sources.length > 0) {
-      return sources[0].thumbnail.toDataURL();
-    }
-    throw new Error('No screen sources found');
   }
 
   private async startRecording(): Promise<boolean> {
@@ -756,6 +905,66 @@ class CatfishApp {
     pcmBuffer.copy(buffer, headerLength);
     
     return buffer;
+  }
+
+  private async captureScreen(): Promise<string> {
+    try {
+      console.log('🐟 Capturing all screens...');
+      
+      // Get all displays
+      const displays = screen.getAllDisplays();
+      console.log('🐟 Found', displays.length, 'display(s)');
+      console.log('🐟 Display details:', displays.map(d => ({ id: d.id, bounds: d.bounds, scaleFactor: d.scaleFactor })));
+      
+      // Capture all screens
+      const sources = await desktopCapturer.getSources({
+        types: ['screen'],
+        thumbnailSize: { width: 2560, height: 1440 } // Higher resolution for better OCR
+      });
+      
+      console.log('🐟 Found', sources.length, 'screen source(s)');
+      console.log('🐟 Source details:', sources.map(s => ({ name: s.name, id: s.id })));
+      
+      if (sources.length === 0) {
+        throw new Error('No screen sources found');
+      }
+      
+      let selectedSource;
+      
+      // If only one screen, return it directly
+      if (sources.length === 1) {
+        console.log('🐟 Single screen captured');
+        selectedSource = sources[0];
+      } else {
+        // For multiple screens, we'll use the primary display for now
+        // TODO: In the future, we could composite all screens or let user choose
+        selectedSource = sources.find(source => source.name.includes('Entire Screen')) || sources[0];
+        console.log('🐟 Using primary screen:', selectedSource.name);
+      }
+      
+      // Validate the thumbnail
+      if (!selectedSource.thumbnail || selectedSource.thumbnail.isEmpty()) {
+        throw new Error('Screen capture returned empty thumbnail');
+      }
+      
+      const dataUrl = selectedSource.thumbnail.toDataURL();
+      console.log('🐟 Screenshot data URL length:', dataUrl.length);
+      console.log('🐟 Screenshot data URL prefix:', dataUrl.substring(0, 100));
+      
+      // Validate the data URL
+      if (!dataUrl.startsWith('data:image/')) {
+        throw new Error('Invalid screenshot data format');
+      }
+      
+      if (dataUrl.length < 1000) {
+        throw new Error('Screenshot data too small, likely corrupted');
+      }
+      
+      return dataUrl;
+    } catch (error) {
+      console.error('🐟 Screen capture failed:', error);
+      throw error;
+    }
   }
 }
 
