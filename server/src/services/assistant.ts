@@ -71,51 +71,45 @@ class CatfishAssistant {
       // Validate input data
       const validatedData = validateRequestData(data);
 
-      // Pre-process screenshot locally for privacy (OCR)
-      let screenText = '';
-      if (validatedData.screenshot) {
-        try {
-          const ocrResult = await performOCR(validatedData.screenshot);
-          screenText = ocrResult.text;
-          logger.info(`Local OCR extracted ${screenText.length} characters`);
-        } catch (ocrError) {
-          logger.warn('Local OCR failed', { error: ocrError });
-        }
-      }
-
-      // TODO: Add audio transcription when needed
-      let audioTranscript = '';
-      if (validatedData.audio) {
-        // For now, we'll mention that audio was provided
-        audioTranscript = '[Audio provided but not yet transcribed]';
-      }
-
-      // Prepare context for Letta agent
-      const contextParts = [];
+      // Build multi-modal content array
+      const content: any[] = [];
       
-      if (screenText) {
-        contextParts.push(`Screen Content (OCR): "${screenText}"`);
+      // Add screenshot as image if available
+      if (validatedData.screenshot) {
+        // Extract base64 data from data URL
+        const base64Data = validatedData.screenshot.replace(/^data:image\/[a-z]+;base64,/, '');
+        
+        content.push({
+          type: "image",
+          source: {
+            type: "base64",
+            media_type: "image/png", // Screenshots are typically PNG
+            data: base64Data,
+          },
+        });
+        
+        logger.info('Added screenshot as image to message');
       }
+
+      // Add text content
+      let textMessage = "Please analyze this screenshot and help me understand what you see.";
       
       if (validatedData.clipboard) {
-        contextParts.push(`Clipboard Content: "${validatedData.clipboard}"`);
+        textMessage = `Please analyze this screenshot. Also, here's the clipboard content: "${validatedData.clipboard}"`;
       }
       
-      if (audioTranscript) {
-        contextParts.push(`Audio: ${audioTranscript}`);
-      }
+      content.push({
+        type: "text",
+        text: textMessage
+      });
 
-      const userMessage = contextParts.length > 0 
-        ? `I need help with the following content:\n\n${contextParts.join('\n\n')}`
-        : 'I need assistance with my current screen.';
-
-      // Send message to Letta agent (stateful - only send new message)
+      // Send multi-modal message to Letta agent
       const response = await this.client.agents.messages.create(this.agentId, {
         messages: [{
-          role: 'user',
-          content: userMessage
+          role: "user",
+          content: content as any // Type assertion for multi-modal content
         }]
-      });
+      } as any);
 
       // Extract assistant response from Letta
       let assistantAnswer = '';
@@ -123,7 +117,14 @@ class CatfishAssistant {
       
       for (const msg of response.messages) {
         if (msg.messageType === 'assistant_message') {
-          assistantAnswer = msg.content || '';
+          // Handle both string and array content types
+          if (typeof msg.content === 'string') {
+            assistantAnswer = msg.content;
+          } else if (Array.isArray(msg.content)) {
+            // Extract text from content array
+            const textContent = msg.content.find((c: any) => c.type === 'text');
+            assistantAnswer = textContent?.text || '';
+          }
         } else if (msg.messageType === 'tool_call_message') {
           toolCalls.push({
             name: msg.toolCall?.name,
@@ -147,8 +148,8 @@ class CatfishAssistant {
         answer: assistantAnswer || 'I processed your request but couldn\'t generate a response.',
         metadata: {
           processingTime,
-          screenTextLength: screenText.length,
-          transcriptLength: audioTranscript.length,
+          screenTextLength: 0, // Using image directly, no OCR
+          transcriptLength: 0, // No audio transcription yet
           clipboardLength: (validatedData.clipboard || '').length,
           timestamp: Date.now()
         }
