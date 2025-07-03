@@ -1,0 +1,36 @@
+{
+  "name": "catfish-agent",
+  "version": "0.1.0",
+  "description": "Catfish AI Assistant - Letta Agent Setup",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc && node dist/test.js",
+    "setup": "tsc && node dist/agent-setup.js",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write src/",
+    "test": "jest",
+    "clean": "rm -rf dist node_modules"
+  },
+  "dependencies": {
+    "@letta-ai/letta-client": "^0.1.146",
+    "openai": "^4.57.0",
+    "tesseract.js": "^5.1.0",
+    "sharp": "^0.33.0",
+    "axios": "^1.7.0",
+    "dotenv": "^16.4.0",
+    "winston": "^3.14.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@types/node": "^22.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "jest": "^29.7.0",
+    "prettier": "^3.3.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0"
+  }
+} 

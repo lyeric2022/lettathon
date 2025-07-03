@@ -1,0 +1,90 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release:
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run tests
+      run: npm test
+      
+    - name: Build project
+      run: npm run build
+      
+    - name: Package Electron app (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        cd client
+        npm run package:linux
+        
+    - name: Package Electron app (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        cd client
+        npm run package:win
+        
+    - name: Package Electron app (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        cd client
+        npm run package:mac
+        
+    - name: Create Release
+      if: matrix.os == 'ubuntu-latest'
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.ref_name }}
+        name: Release ${{ github.ref_name }}
+        body: |
+          ## 🎉 New Release: ${{ github.ref_name }}
+          
+          ### 📥 Downloads
+          
+          - **Windows**: `catfish-setup-${{ github.ref_name }}.exe`
+          - **macOS**: `catfish-${{ github.ref_name }}.dmg`
+          - **Linux**: `catfish-${{ github.ref_name }}.AppImage`
+          
+          ### 🔧 Installation
+          
+          1. Download the appropriate file for your platform
+          2. Install/run the application
+          3. Follow the setup wizard to configure your Letta API key
+          4. Grant necessary permissions for screen capture
+          5. Use `Cmd+Shift+A` (macOS) or `Ctrl+Shift+A` (Windows/Linux) to activate
+        draft: false
+        prerelease: false
+        files: |
+          client/release/*.exe
+          client/release/*.dmg
+          client/release/*.AppImage
+          client/release/*.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Upload Release Assets
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-${{ matrix.os }}
+        path: client/release/
+        retention-days: 30 
