@@ -53,8 +53,8 @@ const OverlayContainer = styled(motion.div)`
 
 const ContentBox = styled(motion.div)<{ $isMinimized: boolean; $isDragging: boolean }>`
   background: linear-gradient(135deg, 
-    rgba(255, 255, 255, 0.35) 0%, 
-    rgba(255, 255, 255, 0.25) 100%
+    rgba(255, 255, 255, 0.45) 0%, 
+    rgba(255, 255, 255, 0.35) 100%
   );
   backdrop-filter: blur(40px) saturate(180%);
   -webkit-backdrop-filter: blur(40px) saturate(180%);
@@ -186,7 +186,9 @@ const AssistantIcon = ({ className = '', size = 24 }: { className?: string; size
     viewBox="0 0 24 24"
     fill="none"
     className={className}
-    style={{ filter: 'drop-shadow(0 0 8px rgba(96, 165, 250, 0.5))' }}
+    style={{ 
+      filter: 'drop-shadow(0 0 8px rgba(96, 165, 250, 0.5)) drop-shadow(0 0 16px rgba(167, 139, 250, 0.4))'
+    }}
   >
     <defs>
       <linearGradient id="assistantGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -1058,6 +1060,12 @@ export const OverlayApp: React.FC = () => {
                   <Header>
                     <HeaderContent>
                       <AssistantIcon className="logo" size={32} />
+                      <HeaderText>
+                        <HeaderTitle>Catfish AI</HeaderTitle>
+                        {state.isRecording && (
+                          <RecordingIndicator>Recording...</RecordingIndicator>
+                        )}
+                      </HeaderText>
                       {state.isRecording && (
                         <div style={{
                           width: '10px',
