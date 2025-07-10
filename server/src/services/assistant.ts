@@ -1,6 +1,5 @@
 import { LettaClient } from '@letta-ai/letta-client';
 import winston from 'winston';
-import { performOCR } from './ocr';
 import { transcribeAudio, checkVoiceHealth } from './voice';
 import { validateRequestData } from '../utils/validation';
 
@@ -28,6 +27,7 @@ interface AssistantResponse {
     screenTextLength: number;
     transcriptLength: number;
     clipboardLength: number;
+    hasImage?: boolean; // Add this line
     timestamp: number;
   };
   error?: string;
@@ -62,7 +62,7 @@ class CatfishAssistant {
     const startTime = Date.now();
     
     try {
-      logger.info('Processing assistant request via Letta Cloud', {
+      logger.info('Processing assistant request via Letta Cloud with image streaming', {
         hasScreenshot: !!data.screenshot,
         hasAudio: !!data.audio,
         hasClipboard: !!data.clipboard,
@@ -72,60 +72,63 @@ class CatfishAssistant {
       // Validate input data
       const validatedData = validateRequestData(data);
 
-      // Pre-process screenshot locally for privacy (OCR)
-      let screenText = '';
+      // Prepare multi-modal content for Letta
+      const content: any[] = [];
+      
+      // Add image if screenshot is provided
       if (validatedData.screenshot) {
-        try {
-          const ocrResult = await performOCR(validatedData.screenshot);
-          screenText = ocrResult.text;
-          logger.info(`Local OCR extracted ${screenText.length} characters`);
-        } catch (ocrError) {
-          logger.warn('Local OCR failed', { error: ocrError });
-        }
+        const base64Data = validatedData.screenshot.replace(/^data:image\/[a-z]+;base64,/, '');
+        
+        content.push({
+          type: "image",
+          source: {
+            type: "base64",
+            mediaType: "image/png", // Change from media_type to mediaType
+            data: base64Data,
+          },
+        });
       }
-
-      // Transcribe audio if provided
-      let audioTranscript = '';
+      
+      // Add text content
+      const textParts = [];
+      
+      // Add audio transcript if provided
       if (validatedData.audio) {
         try {
           const transcriptionResult = await transcribeAudio(validatedData.audio, {
-            model: 'distil-whisper-large-v3-en', // Fastest English-only model
-            language: 'en', // English only
+            model: 'distil-whisper-large-v3-en',
+            language: 'en',
             prompt: 'This is audio from a screen capture session. The user might be speaking about what they see on screen or asking for help.'
           });
-          audioTranscript = transcriptionResult.text;
-          logger.info(`Audio transcribed: ${audioTranscript.length} characters, confidence: ${transcriptionResult.confidence}%`);
+          textParts.push(`User's voice command: ${transcriptionResult.text}`);
+          logger.info(`Audio transcribed: ${transcriptionResult.text.length} characters, confidence: ${transcriptionResult.confidence}%`);
         } catch (audioError) {
           logger.warn('Audio transcription failed', { error: audioError });
-          audioTranscript = '[Audio provided but transcription failed]';
+          textParts.push('[Audio provided but transcription failed]');
         }
       }
-
-      // Prepare context for Letta agent
-      const contextParts = [];
       
-      // Put audio transcript first (highest priority)
-      if (audioTranscript) {
-        contextParts.push(`User's command: ${audioTranscript}`);
-      }
-      
-      if (screenText) {
-        contextParts.push(`Screen Content (OCR): "${screenText}"`);
-      }
-      
+      // Add clipboard content if provided
       if (validatedData.clipboard) {
-        contextParts.push(`Clipboard Content: "${validatedData.clipboard}"`);
+        textParts.push(`Clipboard content: ${validatedData.clipboard}`);
       }
+      
+      // Add default prompt if no other text content
+      if (textParts.length === 0) {
+        textParts.push('Please analyze this screenshot and provide helpful assistance.');
+      }
+      
+      // Add text content to the message
+      content.push({
+        type: "text",
+        text: textParts.join('\n\n')
+      });
 
-      const userMessage = contextParts.length > 0 
-        ? `I need help with the following content:\n\n${contextParts.join('\n\n')}`
-        : 'I need assistance with my current screen.';
-
-      // Send message to Letta agent (stateful - only send new message)
+      // Send multi-modal message to Letta agent
       const response = await this.client.agents.messages.create(this.agentId, {
         messages: [{
           role: 'user',
-          content: userMessage
+          content: content
         }]
       });
 
@@ -148,10 +151,11 @@ class CatfishAssistant {
 
       const processingTime = Date.now() - startTime;
       
-      logger.info('Assistant request completed via Letta Cloud', {
+      logger.info('Assistant request completed via Letta Cloud with image streaming', {
         processingTime,
         responseLength: assistantAnswer.length,
-        toolCallsCount: toolCalls.length
+        toolCallsCount: toolCalls.length,
+        hasImage: !!validatedData.screenshot
       });
 
       return {
@@ -159,8 +163,9 @@ class CatfishAssistant {
         answer: assistantAnswer || 'I processed your request but couldn\'t generate a response.',
         metadata: {
           processingTime,
-          screenTextLength: screenText.length,
-          transcriptLength: audioTranscript.length,
+          screenTextLength: 0, // Add this line
+          hasImage: !!validatedData.screenshot,
+          transcriptLength: textParts.join('').length,
           clipboardLength: (validatedData.clipboard || '').length,
           timestamp: Date.now()
         }

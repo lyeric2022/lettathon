@@ -46,29 +46,6 @@ class CatfishApp {
         
         this.overlayWindow?.webContents.once('did-finish-load', () => {
           console.log('🐟 Overlay webContents finished loading');
-          // Add a longer delay to ensure React component is fully mounted
-          setTimeout(() => {
-            const introMessage = `# Welcome to Catfish
-
-Your AI assistant is ready to help!
-
-**Quick Start:**
-• Press **⌘⇧A** (Mac) or **Ctrl⇧A** (Windows/Linux) to activate
-• Start recording to ask questions with voice
-• I can analyze your screen and help with any task
-
-**Features:**
-• Voice commands
-• Screen analysis  
-• Clipboard integration
-• Instant assistance
-
-Press **⌘⇧A** to get started!`;
-            
-            console.log('🐟 Sending intro message to overlay...');
-            this.overlayWindow?.webContents.send('display-content', introMessage);
-            console.log('🐟 Intro message sent');
-          }, 500); // Increased delay from 200ms to 500ms
         });
       });
       
@@ -686,12 +663,14 @@ Press **⌘⇧A** to get started!`;
               this.overlayWindow.webContents.once('did-finish-load', () => {
                 setTimeout(() => {
                   this.overlayWindow?.webContents.send('display-content', responseText);
+                  this.overlayWindow?.show(); // Add this line
                   console.log('🐟 Response sent to overlay');
                 }, 100);
               });
             } else {
               setTimeout(() => {
                 this.overlayWindow?.webContents.send('display-content', responseText);
+                this.overlayWindow?.show(); // Add this line
                 console.log('🐟 Response sent to overlay');
               }, 100);
             }
