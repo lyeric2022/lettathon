@@ -33,18 +33,26 @@ class CatfishApp {
   private async setupApp(): Promise<void> {
     // Handle app ready
     app.whenReady().then(async () => {
-      // Create overlay window on startup
-      this.overlayWindow = this.createOverlayWindow();
+      // Create main window on startup
+      this.createMainWindow();
       
-      // Show overlay with intro message after it's ready
-      this.overlayWindow.once('ready-to-show', () => {
-        console.log('🐟 Overlay ready-to-show event fired');
-        this.overlayWindow?.show();
+      // Only create overlay window if one doesn't already exist
+      if (!this.overlayWindow || this.overlayWindow.isDestroyed()) {
+        console.log('🐟 Creating initial overlay window...');
+        this.overlayWindow = this.createOverlayWindow();
         
-        this.overlayWindow?.webContents.once('did-finish-load', () => {
-          console.log('🐟 Overlay webContents finished loading');
+        // Show overlay with intro message after it's ready
+        this.overlayWindow.once('ready-to-show', () => {
+          console.log('🐟 Overlay ready-to-show event fired');
+          this.overlayWindow?.show();
+          
+          this.overlayWindow?.webContents.once('did-finish-load', () => {
+            console.log('🐟 Overlay webContents finished loading');
+          });
         });
-      });
+      } else {
+        console.log('🐟 Overlay window already exists, skipping creation');
+      }
       
       await this.registerShortcuts();
       await this.setupIPC();
@@ -75,20 +83,21 @@ class CatfishApp {
   }
 
   private createMainWindow(): void {
-    // This method is no longer used, but keeping it in case needed later
     console.log('🐟 Creating main window...');
     this.mainWindow = new BrowserWindow({
-      width: 400,
-      height: 600,
+      width: 900,
+      height: 700,
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
         preload: join(__dirname, '../preload/preload.js'),
       },
-      titleBarStyle: 'hiddenInset',
-      vibrancy: 'under-window',
-      transparent: true,
       show: false,
+      center: true,
+      resizable: true,
+      minimizable: true,
+      maximizable: true,
+      title: 'Catfish - Roy Lee Agent',
     });
 
     console.log('🐟 Main window created, loading content...');
@@ -97,57 +106,16 @@ class CatfishApp {
     if (process.env.NODE_ENV === 'development') {
       console.log('🐟 Loading development URL: http://localhost:3000');
       this.mainWindow!.loadURL('http://localhost:3000');
-      // Don't auto-open DevTools - let user open manually if needed
-      
-      // Add navigation tracking
-      this.mainWindow!.webContents.on('will-navigate', (event, navigationUrl) => {
-        console.log('🐟 Window will navigate to:', navigationUrl);
-      });
-      
-      this.mainWindow!.webContents.on('did-navigate', (event, navigationUrl) => {
-        console.log('🐟 Window did navigate to:', navigationUrl);
-      });
-      
-      this.mainWindow!.webContents.on('did-navigate-in-page', (event, navigationUrl) => {
-        console.log('🐟 Window did navigate in page to:', navigationUrl);
-      });
     } else {
       console.log('🐟 Loading production file:', join(__dirname, '../renderer/index.html'));
       this.mainWindow!.loadFile(join(__dirname, '../renderer/index.html'));
     }
 
-    // Add more detailed event logging
-    this.mainWindow!.webContents.on('did-start-loading', () => {
-      console.log('🐟 WebContents: Started loading');
-    });
-
-    this.mainWindow!.webContents.on('did-stop-loading', () => {
-      console.log('🐟 WebContents: Stopped loading');
-    });
-
-    this.mainWindow!.webContents.on('did-finish-load', () => {
-      console.log('🐟 WebContents: Finished loading');
-    });
-
-    this.mainWindow!.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
-      console.error('🐟 WebContents: Failed to load:', errorCode, errorDescription);
-    });
-
-    this.mainWindow!.webContents.on('dom-ready', () => {
-      console.log('🐟 WebContents: DOM ready');
-      console.log('🐟 Current URL:', this.mainWindow!.webContents.getURL());
-      
-      // If we accidentally loaded the overlay, reload the main app
-      const currentURL = this.mainWindow!.webContents.getURL();
-      if (currentURL.includes('/overlay') || currentURL.includes('overlay.html')) {
-        console.log('🐟 ERROR: Main window loaded overlay! Redirecting to main app...');
-        this.mainWindow!.loadURL('http://localhost:3000');
-      }
-    });
-
+    // Show window immediately when ready
     this.mainWindow!.once('ready-to-show', () => {
-      console.log('🐟 Window ready to show - displaying now');
+      console.log('🐟 Main window ready to show - displaying now');
       this.mainWindow?.show();
+      this.mainWindow?.focus();
     });
 
     this.mainWindow!.on('closed', () => {
@@ -157,6 +125,12 @@ class CatfishApp {
   }
 
   private createOverlayWindow(): BrowserWindowType {
+    // Add check to prevent multiple overlay windows
+    if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
+      console.log('🐟 Overlay window already exists, returning existing window');
+      return this.overlayWindow;
+    }
+
     const { width, height } = screen.getPrimaryDisplay().workAreaSize;
     console.log('🐟 Primary display work area:', { width, height });
     
@@ -363,6 +337,7 @@ class CatfishApp {
               console.log('🐟 New overlay visible after show():', this.overlayWindow?.isVisible());
             }, 100);
           });
+
         });
       }
       // No auto-hide - overlay stays visible until manually toggled
@@ -946,4 +921,5 @@ class CatfishApp {
 }
 
 // Initialize the app
+new CatfishApp(); 
 new CatfishApp(); 

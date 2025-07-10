@@ -5,6 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Catfish AI - Your Intelligent Screen Assistant</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+    :root {
+      --primary: #5865F2;
+      --primary-dark: #4752C4;
+      --accent: #EC4899;
+      --secondary: #8B5CF6;
+      --bg-dark: #0f0c29;
+      --bg-mid: #302b63;
+      --bg-light: #24243e;
+      --text: #E2E8F0;
+      --glass-bg: rgba(255, 255, 255, 0.08);
+      --glass-border: rgba(255, 255, 255, 0.1);
+    }
+
     * {
       margin: 0;
       padding: 0;
@@ -12,504 +27,459 @@
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
-      color: white;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-mid) 50%, var(--bg-light) 100%);
+      color: var(--text);
       min-height: 100vh;
-      overflow-x: hidden;
-      position: relative;
+      line-height: 1.6;
+    }
+
+    /* Hero Section */
+    .hero {
+      min-height: 100vh;
       display: flex;
-      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    .hero-content {
+      max-width: 1400px;
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
       align-items: center;
     }
 
-    /* Animated background orbs */
-    .background-orb {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(40px);
-      animation: float 20s ease-in-out infinite;
+    .hero-text {
+      opacity: 0;
+      animation: fadeIn 0.5s ease-out forwards;
     }
 
-    .orb-1 {
-      width: 600px;
-      height: 600px;
-      background: radial-gradient(circle, rgba(88, 101, 242, 0.4) 0%, transparent 70%);
-      top: -300px;
-      right: -200px;
+    @keyframes fadeIn {
+      to { opacity: 1; }
     }
 
-    .orb-2 {
-      width: 500px;
-      height: 500px;
-      background: radial-gradient(circle, rgba(236, 72, 153, 0.3) 0%, transparent 70%);
-      bottom: -250px;
-      left: -200px;
-      animation-duration: 25s;
-      animation-direction: reverse;
-    }
-
-    .orb-3 {
-      width: 550px;
-      height: 550px;
-      background: radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%);
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      animation: pulse 15s ease-in-out infinite;
-    }
-
-    @keyframes float {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      33% { transform: translate(-30px, 30px) scale(1.1); }
-      66% { transform: translate(30px, -30px) scale(0.9); }
-    }
-
-    @keyframes pulse {
-      0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.3; }
-      50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.5; }
-    }
-
-    /* Header section */
-    .header {
-      margin-top: 60px;
-      text-align: center;
-      position: relative;
-      z-index: 10;
-    }
-
-    .title {
-      font-size: 64px;
-      font-weight: 800;
-      margin-bottom: 20px;
-      background: linear-gradient(135deg, #ffffff 0%, #e0e7ff 100%);
+    .hero-title {
+      font-size: 96px;
+      font-weight: 900;
+      line-height: 1;
+      margin-bottom: 30px;
+      background: linear-gradient(135deg, #fff 0%, var(--primary) 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
-      text-shadow: 0 4px 30px rgba(255, 255, 255, 0.3);
-      letter-spacing: -1px;
     }
 
-    .tagline {
-      font-size: 24px;
-      font-weight: 300;
+    .hero-subtitle {
+      font-size: 28px;
       color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 20px;
+      font-weight: 500;
+    }
+
+    .hero-tagline {
+      font-size: 22px;
+      color: var(--accent);
       margin-bottom: 50px;
-      letter-spacing: 1px;
+      font-weight: 600;
     }
 
-    /* Main content container */
-    .main-container {
-      position: relative;
-      z-index: 10;
-      display: flex;
-      flex-direction: column;
+    /* Roy Lee Section */
+    .roy-section {
+      padding: 60px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--glass-border);
+      border-radius: 30px;
+    }
+
+    .roy-content {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 50px;
       align-items: center;
-      gap: 60px;
-      width: 100%;
-      max-width: 1200px;
-      padding: 0 40px;
     }
 
-    /* Logo container with animated icon */
-    .logo-container {
-      position: relative;
+    .roy-avatar {
       width: 200px;
       height: 200px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .logo-background {
-      position: absolute;
-      width: 160px;
-      height: 160px;
-      background: linear-gradient(
-        135deg,
-        #60a5fa 0%,
-        #a78bfa 50%,
-        #f472b6 100%
-      );
-      border-radius: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 
-        0 8px 32px rgba(96, 165, 250, 0.4),
-        inset 0 2px 4px rgba(255, 255, 255, 0.8),
-        inset 0 -2px 4px rgba(0, 0, 0, 0.05);
-      animation: rotateGradient 8s linear infinite;
-    }
-
-    @keyframes rotateGradient {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    .logo-inner {
-      width: 120px;
-      height: 120px;
-      background: rgba(255, 255, 255, 0.95);
-      border-radius: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      z-index: 2;
-      box-shadow: 
-        0 4px 20px rgba(0, 0, 0, 0.1),
-        inset 0 2px 4px rgba(255, 255, 255, 1);
-    }
-
-    .logo-center {
-      width: 40px;
-      height: 40px;
-      background: linear-gradient(135deg, #60a5fa, #a78bfa);
-      border-radius: 50%;
-      box-shadow: 0 4px 12px rgba(96, 165, 250, 0.5);
-      animation: pulse 2s ease-in-out infinite;
-    }
-
-    .logo-glow {
-      position: absolute;
-      inset: -40px;
-      background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, transparent 70%);
-      filter: blur(30px);
-      animation: logoGlow 3s ease-in-out infinite;
-    }
-
-    @keyframes logoGlow {
-      0%, 100% { opacity: 0.6; transform: scale(1); }
-      50% { opacity: 1; transform: scale(1.3); }
-    }
-
-    /* Feature cards */
-    .features-section {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 30px;
-      width: 100%;
-      margin: 40px 0;
-    }
-
-    .feature-card {
-      background: rgba(255, 255, 255, 0.06);
-      backdrop-filter: blur(20px);
-      border-radius: 24px;
-      padding: 40px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      box-shadow: 
-        0 20px 40px rgba(0, 0, 0, 0.2),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.1);
-      position: relative;
+      border-radius: 25px;
       overflow: hidden;
-      transition: all 0.3s ease;
+      border: 3px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
     }
 
-    .feature-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 1px;
-      background: linear-gradient(90deg, 
-        transparent 0%, 
-        rgba(255, 255, 255, 0.3) 50%, 
-        transparent 100%
-      );
-    }
-
-    .feature-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 
-        0 30px 60px rgba(0, 0, 0, 0.3),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.2);
-    }
-
-    .feature-icon {
-      width: 60px;
-      height: 60px;
-      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-      border-radius: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 20px;
-      box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
-    }
-
-    .feature-title {
-      font-size: 24px;
-      font-weight: 700;
-      margin-bottom: 12px;
-      color: rgba(255, 255, 255, 0.95);
-    }
-
-    .feature-description {
-      font-size: 16px;
-      line-height: 1.6;
-      color: rgba(255, 255, 255, 0.8);
-    }
-
-    /* How it works section */
-    .how-it-works {
-      text-align: center;
-      margin: 60px 0;
+    .roy-avatar img {
       width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
-    .section-title {
-      font-size: 40px;
-      font-weight: 700;
-      margin-bottom: 40px;
-      background: linear-gradient(135deg, #fff 0%, #e0e7ff 100%);
+    .roy-info h2 {
+      font-size: 42px;
+      font-weight: 800;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, #fff 0%, var(--primary) 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      background-clip: text;
     }
 
-    .steps-container {
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 40px;
-    }
-
-    .step {
-      flex: 1;
-      min-width: 200px;
-      text-align: center;
-    }
-
-    .step-number {
-      width: 60px;
-      height: 60px;
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 20px;
-      font-size: 24px;
-      font-weight: 700;
-      color: rgba(255, 255, 255, 0.9);
-      transition: all 0.3s ease;
-    }
-
-    .step:hover .step-number {
-      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-      border-color: transparent;
-      transform: scale(1.1);
-    }
-
-    .step-title {
-      font-size: 20px;
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: rgba(255, 255, 255, 0.9);
-    }
-
-    .step-description {
-      font-size: 14px;
-      color: rgba(255, 255, 255, 0.7);
-      line-height: 1.5;
-    }
-
-    /* CTA section */
-    .cta-section {
-      background: rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(20px);
-      border-radius: 24px;
-      padding: 60px;
-      text-align: center;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      box-shadow: 
-        0 20px 40px rgba(0, 0, 0, 0.2),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.1);
-      margin: 60px 0;
-      width: 100%;
-    }
-
-    .cta-title {
-      font-size: 36px;
-      font-weight: 700;
-      margin-bottom: 20px;
-      color: rgba(255, 255, 255, 0.95);
-    }
-
-    .cta-description {
+    .roy-info p {
       font-size: 18px;
-      color: rgba(255, 255, 255, 0.8);
+      line-height: 1.7;
+      color: rgba(255, 255, 255, 0.9);
       margin-bottom: 30px;
     }
 
-    .keyboard-shortcut {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(255, 255, 255, 0.1);
-      padding: 12px 24px;
-      border-radius: 12px;
-      font-family: -apple-system, BlinkMacSystemFont, 'SF Mono', 'Monaco', 'Inconsolata', monospace;
-      font-size: 18px;
-      font-weight: 600;
-      border: 1px solid rgba(255, 255, 255, 0.3);
+    /* Stats */
+    .roy-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 20px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+
+    /* Keyboard Commands */
+    .keyboard-commands {
+      padding: 80px 20px;
+      text-align: center;
+    }
+
+    .section-title {
+      font-size: 48px;
+      font-weight: 800;
+      margin-bottom: 50px;
+      background: linear-gradient(135deg, #fff 0%, var(--primary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .command-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .command-card {
+      background: var(--glass-bg);
       backdrop-filter: blur(10px);
-      box-shadow: 
-        0 4px 16px rgba(0, 0, 0, 0.2),
-        inset 0 2px 0 rgba(255, 255, 255, 0.3);
+      padding: 40px;
+      border-radius: 20px;
+      border: 1px solid var(--glass-border);
+    }
+
+    .command-key {
+      font-family: 'SF Mono', monospace;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 15px;
+      padding: 15px 25px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      display: inline-block;
+      border: 2px solid var(--glass-border);
     }
 
     /* Footer */
     .footer {
-      margin-top: 80px;
-      padding: 24px 32px;
-      background: rgba(0, 0, 0, 0.3);
-      backdrop-filter: blur(20px);
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 40px 20px;
       text-align: center;
-      width: 100%;
+      background: rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid var(--glass-border);
     }
 
-    .footer-text {
-      font-size: 14px;
-      color: rgba(255, 255, 255, 0.6);
-      font-weight: 500;
+    /* Responsive Design */
+    @media (max-width: 1024px) {
+      .hero-content {
+        grid-template-columns: 1fr;
+        text-align: center;
+        gap: 60px;
+      }
+
+      .hero-title {
+        font-size: 72px;
+      }
+
+      .roy-content {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+
+      .roy-avatar {
+        margin: 0 auto;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .hero-title {
+        font-size: 48px;
+      }
+
+      .hero-subtitle {
+        font-size: 22px;
+      }
+
+      .roy-avatar {
+        width: 150px;
+        height: 150px;
+      }
+
+      .section-title {
+        font-size: 36px;
+      }
+    }
+
+    /* Add back subtle animations */
+    @keyframes gentleFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    @keyframes gentlePulse {
+      0%, 100% { opacity: 0.8; }
+      50% { opacity: 1; }
+    }
+
+    /* Restore How to Use section with optimized animations */
+    .how-to-use {
+      padding: 100px 20px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 40px;
+      margin-top: 60px;
+    }
+
+    .step-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(10px);
+      border-radius: 25px;
+      padding: 40px;
+      border: 1px solid var(--glass-border);
+      text-align: center;
+      transition: transform 0.3s ease;
+    }
+
+    .step-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .step-number {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      font-weight: 800;
+      margin: 0 auto 25px;
+      color: white;
+      animation: gentlePulse 3s ease-in-out infinite;
+    }
+
+    /* Features Section with subtle animations */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 40px;
+      padding: 100px 20px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .feature-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(10px);
+      border-radius: 25px;
+      padding: 50px;
+      border: 1px solid var(--glass-border);
+      transition: transform 0.3s ease;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .feature-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 30px;
+      animation: gentleFloat 4s ease-in-out infinite;
+    }
+
+    /* Add subtle animation to Roy's section */
+    .roy-avatar {
+      transition: transform 0.3s ease;
+    }
+
+    .roy-avatar:hover {
+      transform: scale(1.05);
+    }
+
+    .stat-card {
+      transition: transform 0.3s ease, background-color 0.3s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+      background: rgba(255, 255, 255, 0.1);
     }
   </style>
 </head>
 <body>
-  <!-- Animated background orbs -->
-  <div class="background-orb orb-1"></div>
-  <div class="background-orb orb-2"></div>
-  <div class="background-orb orb-3"></div>
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-content">
+      <div class="hero-text">
+        <h1 class="hero-title">Catfish AI</h1>
+        <p class="hero-subtitle">Your Intelligent Screen Assistant</p>
+        <p class="hero-tagline">Better than Cluely.</p>
+      </div>
 
-  <!-- Header -->
-  <header class="header">
-    <h1 class="title">Catfish AI</h1>
-    <p class="tagline">Your Intelligent Screen Assistant</p>
-    <p class="tagline" style="font-size: 20px; margin-top: 10px; color: rgba(255, 255, 255, 0.7);">Better Cluely.</p>
-  </header>
-
-  <!-- Main content -->
-  <div class="main-container">
-    <!-- Animated logo -->
-    <div class="logo-container">
-      <div class="logo-glow"></div>
-      <div class="logo-background">
-        <div class="logo-inner">
-          <div class="logo-center"></div>
+      <!-- Roy Lee Section -->
+      <div class="roy-section">
+        <div class="roy-content">
+          <div class="roy-avatar">
+            <img src="./assets/roylee.png" alt="Roy Lee" />
+          </div>
+          
+          <div class="roy-info">
+            <h2>Roy Lee</h2>
+            <p>At 6 ft tall + infinite memory, Roy watches your screen, listens to every word, and  whispers your next best move. Fabulous at LeetCode + poker.
+            </p>
+            
+            <div class="roy-stats">
+              <div class="stat-card">
+                <div class="stat-value">∞</div>
+                <div class="stat-label">Memory</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value">6'0"</div>
+                <div class="stat-label">Height</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value">🟢</div>
+                <div class="stat-label">Status</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
+  </section>
 
-    <!-- How to use section -->
-    <section class="how-it-works">
-      <h2 class="section-title">How to Use</h2>
-      <div class="steps-container">
-        <div class="step">
-          <div class="step-number">1</div>
-          <h4 class="step-title">Activate Assistant</h4>
-          <p class="step-description">Press ⌘⇧A on Mac or Ctrl⇧A on Windows/Linux to open the overlay</p>
-        </div>
-        <div class="step">
-          <div class="step-number">2</div>
-          <h4 class="step-title">Start Recording</h4>
-          <p class="step-description">Click the microphone button to start voice recording</p>
-        </div>
-        <div class="step">
-          <div class="step-number">3</div>
-          <h4 class="step-title">Ask Questions</h4>
-          <p class="step-description">Speak your question about anything on your screen</p>
-        </div>
-        <div class="step">
-          <div class="step-number">4</div>
-          <h4 class="step-title">Get Help</h4>
-          <p class="step-description">Receive instant AI assistance with context-aware responses</p>
-        </div>
+  <!-- Keyboard Commands -->
+  <section class="keyboard-commands">
+    <h2 class="section-title">Quick Commands</h2>
+    <div class="command-grid">
+      <div class="command-card">
+        <div class="command-key">⌘ ⇧ A</div>
+        <div class="command-description">Activate Assistant</div>
       </div>
-    </section>
-
-    <!-- Features section -->
-    <section class="features-section">
-      <div class="feature-card">
-        <div class="feature-icon">
-          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-            <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
-          </svg>
-        </div>
-        <h3 class="feature-title">Screen Analysis</h3>
-        <p class="feature-description">
-          Instantly analyze any content on your screen with advanced AI. Get insights, explanations, and assistance for anything you see.
-        </p>
+      <div class="command-card">
+        <div class="command-key">⌘ ⇧ O</div>
+        <div class="command-description">Hide Overlay</div>
       </div>
+    </div>
+  </section>
 
-      <div class="feature-card">
-        <div class="feature-icon">
-          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-            <path d="M12 2a3 3 0 0 0-3 3v4a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
-            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-            <line x1="12" y1="19" x2="12" y2="23"/>
-            <line x1="8" y1="23" x2="16" y2="23"/>
-          </svg>
-        </div>
-        <h3 class="feature-title">Voice Commands</h3>
-        <p class="feature-description">
-          Speak naturally to interact with your AI assistant. Ask questions, give commands, and get responses without typing.
-        </p>
+  <!-- How to Use Section -->
+  <section class="how-to-use">
+    <h2 class="section-title">How to Use</h2>
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-number">1</div>
+        <h4>Activate Assistant</h4>
+        <p>Press ⌘⇧A on Mac or Ctrl⇧A on Windows/Linux</p>
       </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">
-          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-          </svg>
-        </div>
-        <h3 class="feature-title">Instant Response</h3>
-        <p class="feature-description">
-          Get lightning-fast AI assistance with context-aware responses. No switching apps or copying text - just press the hotkey.
-        </p>
+      <div class="step-card">
+        <div class="step-number">2</div>
+        <h4>Ask Question</h4>
+        <p>Speak or type your question about anything on screen</p>
       </div>
-    </section>
-
-    <!-- How it works -->
-    <section class="how-it-works">
-      <h2 class="section-title">How It Works</h2>
-      <div class="steps-container">
-        <div class="step">
-          <div class="step-number">1</div>
-          <h4 class="step-title">Press Hotkey</h4>
-          <p class="step-description">Press ⌘⇧A (Mac) or Ctrl⇧A (Windows/Linux)</p>
-        </div>
-        <div class="step">
-          <div class="step-number">2</div>
-          <h4 class="step-title">Ask Anything</h4>
-          <p class="step-description">Speak your question or type your request</p>
-        </div>
-        <div class="step">
-          <div class="step-number">3</div>
-          <h4 class="step-title">Get Help</h4>
-          <p class="step-description">Receive instant AI assistance in the overlay</p>
-        </div>
+      <div class="step-card">
+        <div class="step-number">3</div>
+        <h4>Get Help</h4>
+        <p>Receive instant AI assistance with context-aware responses</p>
       </div>
-    </section>
+      <div class="step-card">
+        <div class="step-number">4</div>
+        <h4>Hide Overlay</h4>
+        <p>Press ⌘⇧O on Mac or Ctrl⇧O on Windows/Linux</p>
+      </div>
+    </div>
+  </section>
 
-    <!-- CTA section -->
-    <section class="cta-section">
-      <h2 class="cta-title">Ready to Get Started?</h2>
-      <p class="cta-description">Your AI assistant is running and ready to help!</p>
-      <div class="keyboard-shortcut">⌘ ⇧ A</div>
-    </section>
-  </div>
+  <!-- Features Section -->
+  <section class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+          <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
+        </svg>
+      </div>
+      <h3>Screen Analysis</h3>
+      <p>Get instant AI analysis of anything on your screen. Perfect for debugging, learning, or getting quick insights.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+          <path d="M12 2a3 3 0 0 0-3 3v4a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          <line x1="12" y1="19" x2="12" y2="23"/>
+          <line x1="8" y1="23" x2="16" y2="23"/>
+        </svg>
+      </div>
+      <h3>Voice Commands</h3>
+      <p>Just speak naturally to your AI assistant. No typing needed - ask questions or give commands with your voice.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+        </svg>
+      </div>
+      <h3>Instant Response</h3>
+      <p>Get lightning-fast, context-aware responses. Press ⌘⇧A and start getting help immediately.</p>
+    </div>
+  </section>
 
   <!-- Footer -->
   <footer class="footer">
-    <p class="footer-text">Powered by Letta Cloud</p>
+    <p>Powered by Letta Cloud</p>
   </footer>
 </body>
 </html> 
