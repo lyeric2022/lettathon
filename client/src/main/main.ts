@@ -33,9 +33,6 @@ class CatfishApp {
   private async setupApp(): Promise<void> {
     // Handle app ready
     app.whenReady().then(async () => {
-      // Create main window for setup and main app
-      this.createMainWindow();
-      
       // Create overlay window on startup
       this.overlayWindow = this.createOverlayWindow();
       
@@ -275,6 +272,15 @@ class CatfishApp {
       if (this.mainWindow && !this.mainWindow.isDestroyed()) {
         this.mainWindow.loadURL('http://localhost:3000');
       }
+    });
+
+    // Demo shortcut to open demo page in browser
+    globalShortcut.register('CommandOrControl+Shift+D', () => {
+      console.log('🐟 Opening demo page in browser...');
+      const demoUrl = process.env.NODE_ENV === 'development' 
+        ? 'http://localhost:3000/demo.html'
+        : 'file://' + join(__dirname, '../renderer/demo.html');
+      shell.openExternal(demoUrl);
     });
   }
 

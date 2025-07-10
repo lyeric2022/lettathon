@@ -5,9 +5,10 @@
   "main": "dist/main/main.js",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"npm run dev:renderer\" \"npm run dev:main\"",
+    "dev": "concurrently \"npm run dev:renderer\" \"npm run dev:main\" \"npm run open-demo\"",
     "dev:renderer": "vite",
     "dev:main": "tsc && NODE_ENV=development electron dist/main/main.js",
+    "open-demo": "wait-on http://localhost:3000 && open http://localhost:3000/demo.html",
     "build": "npm run build:renderer && npm run build:main",
     "build:renderer": "vite build",
     "build:main": "tsc",
