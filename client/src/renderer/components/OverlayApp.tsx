@@ -139,7 +139,7 @@ const Header = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 5px 6px;
   background: linear-gradient(
     to bottom,
     rgba(255, 255, 255, 0.35) 0%,
@@ -865,7 +865,22 @@ export const OverlayApp: React.FC = () => {
   const [state, setState] = useState<OverlayState>({
     isVisible: true,
     isLoading: false,
-    content: ``,
+    content: `# Welcome to Catfish
+
+Your AI assistant is ready to help!
+
+**Quick Start:**
+• Press **⌘⇧A** (Mac) or **Ctrl⇧A** (Windows/Linux) to activate
+• Start recording to ask questions with voice
+• I can analyze your screen and help with any task
+
+**Features:**
+• Voice commands
+• Screen analysis  
+• Clipboard integration
+• Instant assistance
+
+Press **⌘⇧A** to get started!`,
     isMinimized: false,
     isRecording: false
   });
@@ -884,6 +899,9 @@ export const OverlayApp: React.FC = () => {
     if (window.electronAPI?.onDisplayContent) {
       console.log('OverlayApp: onDisplayContent listener available');
       window.electronAPI.onDisplayContent((content: string) => {
+        console.log('OverlayApp: Received display-content event');
+        console.log('OverlayApp: Content length:', content?.length);
+        console.log('OverlayApp: Content preview:', content?.substring(0, 100));
         console.log('OverlayApp: Received display-content event with content:', content?.substring(0, 100) + '...');
         setState(prev => {
           console.log('OverlayApp: Previous state:', prev);

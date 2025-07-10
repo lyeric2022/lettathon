@@ -33,8 +33,8 @@ class CatfishApp {
   private async setupApp(): Promise<void> {
     // Handle app ready
     app.whenReady().then(async () => {
-      // Don't create main window - we'll just use the overlay
-      // this.createMainWindow();
+      // Create main window for setup and main app
+      this.createMainWindow();
       
       // Create overlay window on startup
       this.overlayWindow = this.createOverlayWindow();
@@ -72,14 +72,6 @@ Press **⌘⇧A** to get started!`;
         });
       });
       
-      // Open demo.html in default browser
-      const demoPath = process.env.NODE_ENV === 'development'
-        ? 'http://localhost:3000/demo.html'
-        : `file://${join(__dirname, '../renderer/demo.html')}`;
-      
-      console.log('🐟 Opening demo.html:', demoPath);
-      await shell.openExternal(demoPath);
-      
       await this.registerShortcuts();
       await this.setupIPC();
       autoUpdater.checkForUpdatesAndNotify();
@@ -93,10 +85,10 @@ Press **⌘⇧A** to get started!`;
     });
 
     app.on('activate', () => {
-      // Don't create main window on activate
-      // if (BrowserWindow.getAllWindows().length === 0) {
-      //   this.createMainWindow();
-      // }
+      // Create main window on activate if none exists
+      if (BrowserWindow.getAllWindows().length === 0) {
+        this.createMainWindow();
+      }
     });
 
     // Security: Prevent new window creation
