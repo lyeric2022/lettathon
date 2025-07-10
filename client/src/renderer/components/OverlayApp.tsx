@@ -965,7 +965,9 @@ Press **⌘⇧A** to get started!`,
   }, [state]);
 
   const handleClose = () => {
-    setState(prev => ({ ...prev, isVisible: false }));
+    // Don't actually close, just minimize instead
+    console.log('OverlayApp: Close button clicked, minimizing instead of closing');
+    setState(prev => ({ ...prev, isMinimized: true }));
   };
 
   const handleMinimize = () => {
@@ -974,7 +976,9 @@ Press **⌘⇧A** to get started!`,
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
-      handleClose();
+      // Don't close on Escape, just minimize
+      console.log('OverlayApp: Escape pressed, minimizing instead of closing');
+      setState(prev => ({ ...prev, isMinimized: true }));
     } else if (e.key === 'm' || e.key === 'M') {
       handleMinimize();
     }

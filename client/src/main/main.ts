@@ -25,6 +25,8 @@ class CatfishApp {
   private isRecording: boolean = false;
   private recordingStream: any = null;
   private recordingBuffer: Buffer[] = [];
+  private lastToggleTime = 0; // Add this line
+  private overlayShouldBeVisible = true; // Add this line to track intended state
 
   constructor() {
     this.setupApp();
@@ -33,26 +35,21 @@ class CatfishApp {
   private async setupApp(): Promise<void> {
     // Handle app ready
     app.whenReady().then(async () => {
-      // Create main window on startup
-      this.createMainWindow();
+      // Don't create main window on startup
+      // this.createMainWindow();
       
-      // Only create overlay window if one doesn't already exist
-      if (!this.overlayWindow || this.overlayWindow.isDestroyed()) {
-        console.log('🐟 Creating initial overlay window...');
-        this.overlayWindow = this.createOverlayWindow();
+      // Create overlay window on startup
+      this.overlayWindow = this.createOverlayWindow();
+      
+      // Show overlay with intro message after it's ready
+      this.overlayWindow.once('ready-to-show', () => {
+        console.log('🐟 Overlay ready-to-show event fired');
+        this.overlayWindow?.show();
         
-        // Show overlay with intro message after it's ready
-        this.overlayWindow.once('ready-to-show', () => {
-          console.log('🐟 Overlay ready-to-show event fired');
-          this.overlayWindow?.show();
-          
-          this.overlayWindow?.webContents.once('did-finish-load', () => {
-            console.log('🐟 Overlay webContents finished loading');
-          });
+        this.overlayWindow?.webContents.once('did-finish-load', () => {
+          console.log('🐟 Overlay webContents finished loading');
         });
-      } else {
-        console.log('🐟 Overlay window already exists, skipping creation');
-      }
+      });
       
       await this.registerShortcuts();
       await this.setupIPC();
@@ -67,10 +64,10 @@ class CatfishApp {
     });
 
     app.on('activate', () => {
-      // Create main window on activate if none exists
-      if (BrowserWindow.getAllWindows().length === 0) {
-        this.createMainWindow();
-      }
+      // Don't create main window on activate
+      // if (BrowserWindow.getAllWindows().length === 0) {
+      //   this.createMainWindow();
+      // }
     });
 
     // Security: Prevent new window creation
@@ -125,12 +122,14 @@ class CatfishApp {
   }
 
   private createOverlayWindow(): BrowserWindowType {
-    // Add check to prevent multiple overlay windows
+    // Check if overlay window already exists and is valid
     if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
       console.log('🐟 Overlay window already exists, returning existing window');
       return this.overlayWindow;
     }
 
+    console.log('🐟 Creating new overlay window...');
+    
     const { width, height } = screen.getPrimaryDisplay().workAreaSize;
     console.log('🐟 Primary display work area:', { width, height });
     
@@ -213,6 +212,8 @@ class CatfishApp {
         this.overlayBounds = bounds;
         console.log('🐟 Overlay closed, saved bounds:', bounds);
       }
+      // Clear the reference when window is closed
+      this.overlayWindow = null;
     });
 
     // Show overlay on startup
@@ -235,7 +236,7 @@ class CatfishApp {
       this.toggleMicrophone();
     });
     
-    // Toggle overlay visibility
+    // Toggle overlay visibility - with delay protection
     globalShortcut.register('CommandOrControl+Shift+O', () => {
       this.toggleOverlay();
     });
@@ -288,59 +289,34 @@ class CatfishApp {
     // Show/hide overlay
     ipcMain.handle('show-overlay', (_event: IpcMainInvokeEvent, content: string) => {
       console.log('🐟 show-overlay called with content length:', content.length);
-      console.log('🐟 Overlay window exists:', !!this.overlayWindow);
-      console.log('🐟 Overlay window destroyed:', this.overlayWindow?.isDestroyed());
       
-      if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
-        console.log('🐟 Sending content to existing overlay...');
-        console.log('🐟 Overlay window visible before show():', this.overlayWindow.isVisible());
-        console.log('🐟 Overlay window bounds:', this.overlayWindow.getBounds());
-        
-        // Ensure the webContents is ready
-        if (this.overlayWindow.webContents.isLoading()) {
-          console.log('🐟 Overlay webContents is still loading, waiting...');
-          this.overlayWindow.webContents.once('did-finish-load', () => {
-            console.log('🐟 Overlay webContents finished loading, sending content after delay...');
-            // Add small delay to ensure React component is mounted
-            setTimeout(() => {
-              this.overlayWindow?.webContents.send('display-content', content);
-              console.log('🐟 Content sent to overlay');
-            }, 100);
-          });
-        } else {
-          console.log('🐟 Overlay webContents is ready, sending content after delay...');
-          // Add small delay to ensure React component is mounted
-          setTimeout(() => {
-            this.overlayWindow?.webContents.send('display-content', content);
-            console.log('🐟 Content sent to overlay');
-          }, 100);
-        }
-        
-        this.overlayWindow.show();
-        console.log('🐟 Overlay window visible after show():', this.overlayWindow.isVisible());
-        console.log('🐟 Overlay window focused:', this.overlayWindow.isFocused());
-      } else {
+      if (!this.overlayWindow || this.overlayWindow.isDestroyed()) {
         console.log('🐟 Creating new overlay window...');
         this.overlayWindow = this.createOverlayWindow();
         this.overlayWindow.once('ready-to-show', () => {
           console.log('🐟 New overlay ready - sending content and showing...');
-          console.log('🐟 New overlay bounds:', this.overlayWindow?.getBounds());
           
           // Wait for webContents to be ready
           this.overlayWindow?.webContents.once('did-finish-load', () => {
-            console.log('🐟 New overlay webContents finished loading, sending content after delay...');
-            // Add small delay to ensure React component is mounted
-            setTimeout(() => {
-              this.overlayWindow?.webContents.send('display-content', content);
-              console.log('🐟 Content sent to new overlay');
-              this.overlayWindow?.show();
-              console.log('🐟 New overlay visible after show():', this.overlayWindow?.isVisible());
-            }, 100);
+            console.log('🐟 New overlay webContents finished loading, sending content...');
+            this.overlayWindow?.webContents.send('display-content', content);
+            this.overlayWindow?.show();
           });
-
         });
+      } else {
+        console.log('🐟 Using existing overlay window...');
+        if (this.overlayWindow.webContents.isLoading()) {
+          console.log('🐟 Overlay webContents is still loading, waiting...');
+          this.overlayWindow.webContents.once('did-finish-load', () => {
+            this.overlayWindow?.webContents.send('display-content', content);
+            this.overlayWindow?.show();
+          });
+        } else {
+          console.log('🐟 Overlay webContents is ready, sending content...');
+          this.overlayWindow?.webContents.send('display-content', content);
+          this.overlayWindow?.show();
+        }
       }
-      // No auto-hide - overlay stays visible until manually toggled
     });
 
     // Toggle overlay visibility
@@ -435,15 +411,17 @@ class CatfishApp {
   private toggleOverlay(): void {
     console.log('🐟 Toggle overlay called...');
     
+    this.overlayShouldBeVisible = !this.overlayShouldBeVisible; // Toggle intended state
+    
     if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
-      if (this.overlayWindow.isVisible()) {
-        console.log('🐟 Hiding overlay...');
-        this.overlayWindow.hide();
-      } else {
+      if (this.overlayShouldBeVisible) {
         console.log('🐟 Showing overlay...');
         this.overlayWindow.show();
+      } else {
+        console.log('🐟 Hiding overlay...');
+        this.overlayWindow.hide();
       }
-    } else {
+    } else if (this.overlayShouldBeVisible) {
       console.log('🐟 No overlay window exists, creating one...');
       this.overlayWindow = this.createOverlayWindow();
       this.overlayWindow.once('ready-to-show', () => {
@@ -640,21 +618,33 @@ class CatfishApp {
           // Display the response
           if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
             console.log('🐟 Showing response in overlay...');
+            console.log('🐟 Overlay window visible before:', this.overlayWindow.isVisible());
+            console.log('🐟 Overlay window focused before:', this.overlayWindow.isFocused());
+            console.log('🐟 Overlay window bounds:', this.overlayWindow.getBounds());
+            
             if (this.overlayWindow.webContents.isLoading()) {
               this.overlayWindow.webContents.once('did-finish-load', () => {
                 setTimeout(() => {
                   this.overlayWindow?.webContents.send('display-content', responseText);
-                  this.overlayWindow?.show(); // Add this line
+                  this.overlayWindow?.show();
+                  this.overlayWindow?.focus(); // Add focus
                   console.log('🐟 Response sent to overlay');
+                  console.log('🐟 Overlay window visible after:', this.overlayWindow?.isVisible());
+                  console.log('🐟 Overlay window focused after:', this.overlayWindow?.isFocused());
                 }, 100);
               });
             } else {
               setTimeout(() => {
                 this.overlayWindow?.webContents.send('display-content', responseText);
-                this.overlayWindow?.show(); // Add this line
+                this.overlayWindow?.show();
+                this.overlayWindow?.focus(); // Add focus
                 console.log('🐟 Response sent to overlay');
+                console.log('🐟 Overlay window visible after:', this.overlayWindow?.isVisible());
+                console.log('🐟 Overlay window focused after:', this.overlayWindow?.isFocused());
               }, 100);
             }
+          } else {
+            console.error('🐟 Overlay window is null or destroyed, cannot show response');
           }
           
         } catch (error) {
@@ -921,5 +911,4 @@ class CatfishApp {
 }
 
 // Initialize the app
-new CatfishApp(); 
 new CatfishApp(); 
